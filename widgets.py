@@ -207,3 +207,143 @@ class FieldWithClearButton(ctk.CTkFrame):
     def bind(self, sequence, func):
         """Bind an event to the entry"""
         self.entry.bind(sequence, func)
+
+
+class EditDialog(ctk.CTkToplevel):
+    """Reusable edit dialog window with consistent styling"""
+    
+    def __init__(self, parent, title: str, width: int = 600, height: int = 750, **kwargs):
+        super().__init__(parent, **kwargs)
+        
+        self.title(title)
+        self.geometry(f"{width}x{height}")
+        self.grab_set()
+        self.focus_force()
+        
+        # Center window
+        self.update_idletasks()
+        x = (self.winfo_screenwidth() // 2) - (width // 2)
+        y = (self.winfo_screenheight() // 2) - (height // 2)
+        self.geometry(f"{width}x{height}+{x}+{y}")
+        
+        # Content frame (scrollable)
+        self.content = ctk.CTkScrollableFrame(self)
+        self.content.pack(fill="both", expand=True, padx=20, pady=20)
+    
+    def add_title(self, text: str):
+        """Add a title label to the dialog"""
+        ctk.CTkLabel(
+            self.content,
+            text=text,
+            font=ctk.CTkFont(size=22, weight="bold")
+        ).pack(pady=(10, 20))
+    
+    def add_form_frame(self):
+        """Add and return a form frame for fields"""
+        form_frame = ctk.CTkFrame(self.content, fg_color="transparent")
+        form_frame.pack(fill="both", expand=True, pady=10)
+        return form_frame
+    
+    def add_button_frame(self, save_command, cancel_command=None, 
+                        save_text="Save Changes", cancel_text="Cancel"):
+        """Add standard save/cancel button frame"""
+        button_frame = ctk.CTkFrame(self.content, fg_color="transparent")
+        button_frame.pack(pady=20)
+        
+        ctk.CTkButton(
+            button_frame,
+            text=save_text,
+            font=ctk.CTkFont(size=16),
+            width=150,
+            height=40,
+            command=save_command
+        ).pack(side="left", padx=10)
+        
+        ctk.CTkButton(
+            button_frame,
+            text=cancel_text,
+            font=ctk.CTkFont(size=16),
+            width=150,
+            height=40,
+            fg_color="#666666",
+            hover_color="#888888",
+            command=cancel_command or self.destroy
+        ).pack(side="left", padx=10)
+
+
+class ConfirmDeleteDialog(ctk.CTkToplevel):
+    """Reusable confirmation dialog for delete operations"""
+    
+    def __init__(self, parent, title: str, main_message: str, 
+                 warning_message: str, on_confirm, **kwargs):
+        super().__init__(parent, **kwargs)
+        
+        self.title(title)
+        self.geometry("500x380")
+        self.grab_set()
+        self.focus_force()
+        
+        # Center window
+        self.update_idletasks()
+        x = (self.winfo_screenwidth() // 2) - 250
+        y = (self.winfo_screenheight() // 2) - 190
+        self.geometry(f"500x380+{x}+{y}")
+        
+        # Content
+        content = ctk.CTkFrame(self)
+        content.pack(fill="both", expand=True, padx=20, pady=20)
+        
+        # Warning icon and title
+        ctk.CTkLabel(
+            content,
+            text="⚠️ Warning",
+            font=ctk.CTkFont(size=20, weight="bold"),
+            text_color="#DC143C"
+        ).pack(pady=(10, 20))
+        
+        # Main message
+        ctk.CTkLabel(
+            content,
+            text=main_message,
+            font=ctk.CTkFont(size=14),
+            justify="center"
+        ).pack(pady=10)
+        
+        # Warning message
+        ctk.CTkLabel(
+            content,
+            text=warning_message,
+            font=ctk.CTkFont(size=11),
+            text_color="gray",
+            justify="center"
+        ).pack(pady=10)
+        
+        # Buttons
+        button_frame = ctk.CTkFrame(content, fg_color="transparent")
+        button_frame.pack(pady=30)
+        
+        def confirm_action():
+            on_confirm()
+            self.destroy()
+        
+        ctk.CTkButton(
+            button_frame,
+            text="Yes, Delete",
+            width=150,
+            height=45,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color="#DC143C",
+            hover_color="#B22222",
+            command=confirm_action
+        ).pack(side="left", padx=15)
+        
+        ctk.CTkButton(
+            button_frame,
+            text="Cancel",
+            width=150,
+            height=45,
+            font=ctk.CTkFont(size=14, weight="bold"),
+            fg_color="#666666",
+            hover_color="#888888",
+            command=self.destroy
+        ).pack(side="left", padx=15)

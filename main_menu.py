@@ -10,7 +10,8 @@ from views import (
     AddStudentView,
     StudentProfilesView,
     AddExamResultsView,
-    ViewExamResultsView
+    ViewExamResultsView,
+    AddCertificateView
 )
 
 
@@ -65,6 +66,7 @@ class MainMenu(ctk.CTkFrame):
             ("👥 Student Profiles", "Student Profiles", 3),
             ("📝 Add Exam Results", "Add Exam Results", 4),
             ("📊 View Exam Results", "View Exam Results", 5),
+            ("🎓 Add Certificates", "Add Certificates", 6),
         ]
         
         for text, section, row in menu_buttons:
@@ -115,3 +117,5 @@ class MainMenu(ctk.CTkFrame):
             AddExamResultsView(self.content_frame, self.db)
         elif section == "View Exam Results":
             ViewExamResultsView(self.content_frame, self.db)
+        elif section == "Add Certificates":
+            AddCertificateView(self.content_frame, self.db)

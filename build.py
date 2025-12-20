@@ -13,7 +13,7 @@ def build_exe():
     # PyInstaller command
     cmd = [
         sys.executable, "-m", "PyInstaller",
-        "--name=ModernApp",
+        "--name=StudentManager",
         "--windowed",  # No console window
         "--onefile",   # Single executable file
         "--icon=NONE", # Add your .ico file here if you have one

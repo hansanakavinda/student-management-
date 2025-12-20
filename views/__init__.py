@@ -5,6 +5,7 @@ from .add_student_view import AddStudentView
 from .student_profiles_view import StudentProfilesView
 from .add_exam_results_view import AddExamResultsView
 from .view_exam_results_view import ViewExamResultsView
+from .add_certificate_view import AddCertificateView
 
 __all__ = [
     'HomeView',
@@ -12,4 +13,5 @@ __all__ = [
     'StudentProfilesView',
     'AddExamResultsView',
     'ViewExamResultsView',
+    'AddCertificateView',
 ]

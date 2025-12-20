@@ -25,6 +25,7 @@ app_database.db
 
 # User uploaded content
 student_images/
+student_certificates/
 
 # IDE / Editor
 .vscode/

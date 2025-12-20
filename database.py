@@ -57,12 +57,33 @@ class Database:
             CREATE TABLE IF NOT EXISTS exam_results (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 student_id INTEGER NOT NULL,
-                subject TEXT NOT NULL,
                 exam_name TEXT NOT NULL,
-                exam_date DATE NOT NULL,
+                exam_year INTEGER NOT NULL,
                 marks_obtained REAL NOT NULL,
-                total_marks REAL NOT NULL,
-                grade TEXT,
+                grade TEXT NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (student_id) REFERENCES students (id)
+            )
+        ''')
+        
+        # Create student_notes table
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS student_notes (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id INTEGER UNIQUE NOT NULL,
+                notes TEXT,
+                updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                FOREIGN KEY (student_id) REFERENCES students (id)
+            )
+        ''')
+        
+        # Create certificates table
+        self.cursor.execute('''
+            CREATE TABLE IF NOT EXISTS certificates (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                student_id INTEGER NOT NULL,
+                certificate_image_path TEXT NOT NULL,
+                note TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                 FOREIGN KEY (student_id) REFERENCES students (id)
             )
@@ -138,8 +159,8 @@ class Database:
         try:
             self.cursor.execute(
                 '''INSERT INTO exam_results 
-                   (student_id, subject, exam_name, exam_date, marks_obtained, total_marks, grade) 
-                   VALUES (?, ?, ?, ?, ?, ?, ?)''',
+                   (student_id, exam_name, exam_year, marks_obtained, grade) 
+                   VALUES (?, ?, ?, ?, ?)''',
                 result_data
             )
             self.conn.commit()
@@ -149,11 +170,61 @@ class Database:
             self.close()
             return False, str(e)
     
+    def update_exam_result(self, result_id, result_data):
+        """Update exam result"""
+        self.connect()
+        try:
+            self.cursor.execute(
+                '''UPDATE exam_results 
+                   SET student_id=?, exam_name=?, exam_year=?, marks_obtained=?, grade=?
+                   WHERE id=?''',
+                (*result_data, result_id)
+            )
+            self.conn.commit()
+            self.close()
+            return True, "Result updated successfully"
+        except Exception as e:
+            self.close()
+            return False, str(e)
+    
+    def delete_exam_result(self, result_id):
+        """Delete exam result"""
+        self.connect()
+        try:
+            self.cursor.execute("DELETE FROM exam_results WHERE id = ?", (result_id,))
+            self.conn.commit()
+            self.close()
+            return True, "Result deleted successfully"
+        except Exception as e:
+            self.close()
+            return False, str(e)
+    
+    def get_exam_result_by_id(self, result_id):
+        """Get a specific exam result by ID"""
+        self.connect()
+        self.cursor.execute(
+            '''SELECT 
+                exam_results.id,
+                students.id as student_id,
+                students.student_name,
+                exam_results.exam_name,
+                exam_results.exam_year,
+                exam_results.marks_obtained,
+                exam_results.grade
+               FROM exam_results
+               JOIN students ON exam_results.student_id = students.id
+               WHERE exam_results.id = ?''',
+            (result_id,)
+        )
+        result = self.cursor.fetchone()
+        self.close()
+        return result
+    
     def get_student_results(self, student_id):
         """Get all exam results for a student"""
         self.connect()
         self.cursor.execute(
-            "SELECT * FROM exam_results WHERE student_id = ? ORDER BY exam_date DESC",
+            "SELECT * FROM exam_results WHERE student_id = ? ORDER BY exam_year DESC, exam_name",
             (student_id,)
         )
         results = self.cursor.fetchall()
@@ -204,7 +275,7 @@ class Database:
             self.close()
             return False, str(e)
     
-    def get_all_exam_results(self, student_name=None, exam_name=None, exam_date=None):
+    def get_all_exam_results(self, student_name=None, exam_name=None, exam_year=None):
         """Get all exam results with optional filters"""
         self.connect()
         
@@ -212,11 +283,9 @@ class Database:
                     exam_results.id,
                     students.id as student_id,
                     students.student_name,
-                    exam_results.subject,
                     exam_results.exam_name,
-                    exam_results.exam_date,
+                    exam_results.exam_year,
                     exam_results.marks_obtained,
-                    exam_results.total_marks,
                     exam_results.grade
                    FROM exam_results
                    JOIN students ON exam_results.student_id = students.id
@@ -232,13 +301,131 @@ class Database:
             query += " AND exam_results.exam_name LIKE ?"
             params.append(f"%{exam_name}%")
         
-        if exam_date:
-            query += " AND exam_results.exam_date = ?"
-            params.append(exam_date)
+        if exam_year:
+            query += " AND exam_results.exam_year = ?"
+            params.append(exam_year)
         
-        query += " ORDER BY exam_results.exam_date DESC, students.student_name"
+        query += " ORDER BY exam_results.exam_year DESC, students.student_name"
         
         self.cursor.execute(query, params)
         results = self.cursor.fetchall()
         self.close()
         return results
+    
+    def get_student_notes(self, student_id):
+        """Get notes for a specific student"""
+        self.connect()
+        self.cursor.execute(
+            "SELECT notes FROM student_notes WHERE student_id = ?",
+            (student_id,)
+        )
+        result = self.cursor.fetchone()
+        self.close()
+        return result[0] if result else ""
+    
+    def save_student_notes(self, student_id, notes):
+        """Save or update notes for a student"""
+        self.connect()
+        try:
+            # Check if notes exist
+            self.cursor.execute(
+                "SELECT id FROM student_notes WHERE student_id = ?",
+                (student_id,)
+            )
+            existing = self.cursor.fetchone()
+            
+            if existing:
+                # Update existing notes
+                self.cursor.execute(
+                    '''UPDATE student_notes 
+                       SET notes = ?, updated_at = CURRENT_TIMESTAMP 
+                       WHERE student_id = ?''',
+                    (notes, student_id)
+                )
+            else:
+                # Insert new notes
+                self.cursor.execute(
+                    '''INSERT INTO student_notes (student_id, notes) 
+                       VALUES (?, ?)''',
+                    (student_id, notes)
+                )
+            
+            self.conn.commit()
+            self.close()
+            return True, "Notes saved successfully"
+        except Exception as e:
+            self.close()
+            return False, str(e)
+    
+    def add_certificate(self, student_id, certificate_image_path, note=""):
+        """Add a new certificate for a student"""
+        try:
+            self.connect()
+            self.cursor.execute(
+                """INSERT INTO certificates (student_id, certificate_image_path, note) 
+                   VALUES (?, ?, ?)""",
+                (student_id, certificate_image_path, note)
+            )
+            self.conn.commit()
+            return True, "Certificate added successfully"
+        except Exception as e:
+            return False, str(e)
+        finally:
+            self.close()
+    
+    def get_certificates_by_student(self, student_id):
+        """Get all certificates for a specific student"""
+        try:
+            self.connect()
+            self.cursor.execute(
+                """SELECT c.id, c.student_id, c.certificate_image_path, c.note, c.created_at,
+                          s.student_name
+                   FROM certificates c
+                   JOIN students s ON c.student_id = s.id
+                   WHERE c.student_id = ?
+                   ORDER BY c.created_at DESC""",
+                (student_id,)
+            )
+            return self.cursor.fetchall()
+        finally:
+            self.close()
+    
+    def get_all_certificates(self, student_name_filter=""):
+        """Get all certificates with optional student name filter"""
+        try:
+            self.connect()
+            
+            if student_name_filter:
+                self.cursor.execute(
+                    """SELECT c.id, c.student_id, c.certificate_image_path, c.note, c.created_at,
+                              s.student_name
+                       FROM certificates c
+                       JOIN students s ON c.student_id = s.id
+                       WHERE s.student_name LIKE ?
+                       ORDER BY c.created_at DESC""",
+                    (f"%{student_name_filter}%",)
+                )
+            else:
+                self.cursor.execute(
+                    """SELECT c.id, c.student_id, c.certificate_image_path, c.note, c.created_at,
+                              s.student_name
+                       FROM certificates c
+                       JOIN students s ON c.student_id = s.id
+                       ORDER BY c.created_at DESC"""
+                )
+            
+            return self.cursor.fetchall()
+        finally:
+            self.close()
+    
+    def delete_certificate(self, certificate_id):
+        """Delete a certificate by ID"""
+        try:
+            self.connect()
+            self.cursor.execute("DELETE FROM certificates WHERE id = ?", (certificate_id,))
+            self.conn.commit()
+            return True, "Certificate deleted successfully"
+        except Exception as e:
+            return False, str(e)
+        finally:
+            self.close()

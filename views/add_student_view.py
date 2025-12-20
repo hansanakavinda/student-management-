@@ -34,9 +34,12 @@ class AddStudentView:
         # Image Preview at top
         self.preview_label = ctk.CTkLabel(
             self.form_frame,
-            text="",
+            text="👤",
+            font=ctk.CTkFont(size=80),
             width=150,
-            height=150
+            height=150,
+            fg_color="#2b2b2b",
+            corner_radius=10
         )
         self.preview_label.grid(row=1, column=0, columnspan=2, pady=10)
         
@@ -141,7 +144,11 @@ class AddStudentView:
                 img = Image.open(file_path)
                 img.thumbnail((150, 150))
                 photo = ctk.CTkImage(light_image=img, dark_image=img, size=(150, 150))
-                self.preview_label.configure(image=photo, text="")
+                self.preview_label.configure(
+                    image=photo,
+                    text="",
+                    fg_color="transparent"
+                )
                 self.preview_label.image = photo
             except Exception as e:
                 self.form_message.configure(text=f"Error loading image: {e}", text_color="red")
@@ -150,7 +157,12 @@ class AddStudentView:
         """Remove selected image and clear preview"""
         self.image_path = None
         try:
-            self.preview_label.configure(image="", text="")
+            self.preview_label.configure(
+                image="",
+                text="👤",
+                font=ctk.CTkFont(size=80),
+                fg_color="#2b2b2b"
+            )
             if hasattr(self.preview_label, 'image'):
                 delattr(self.preview_label, 'image')
         except:

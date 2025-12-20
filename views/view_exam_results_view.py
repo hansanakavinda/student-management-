@@ -1,8 +1,7 @@
 """View Exam Results view for Student Management System"""
 import customtkinter as ctk
-from datetime import datetime
 import tkinter.messagebox as messagebox
-from widgets import FilterWidget
+from widgets import FilterWidget, EditDialog, ConfirmDeleteDialog
 
 
 class ViewExamResultsView:
@@ -33,31 +32,97 @@ class ViewExamResultsView:
         )
         title.pack(pady=(20, 10))
         
-        # Filter widget
-        filter_fields = [
-            ("Student Name:", "Enter student name...", 180),
-            ("Exam Name:", "Enter exam name...", 180),
-            ("Exam Date:", "YYYY-MM-DD", 180)
-        ]
+        # Custom filter frame
+        filter_frame = ctk.CTkFrame(self.results_frame)
+        filter_frame.pack(pady=10, padx=20, fill="x")
         
-        filter_widget = FilterWidget(
-            self.results_frame,
-            filters=filter_fields,
-            on_apply=self._apply_filters,
-            on_clear=self._clear_filters
+        # Row 1: Student Name
+        ctk.CTkLabel(
+            filter_frame,
+            text="Student Name:",
+            font=ctk.CTkFont(size=13)
+        ).grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        
+        self.student_name_entry = ctk.CTkEntry(
+            filter_frame,
+            width=180,
+            placeholder_text="Enter student name..."
         )
-        filter_widget.pack(pady=10, padx=20, fill="x")
+        self.student_name_entry.grid(row=0, column=1, padx=5, pady=5, sticky="w")
+        
+        # Restore student name if it exists in filters
+        if self.filters.get("student_name"):
+            self.student_name_entry.insert(0, self.filters["student_name"])
+        
+        # Row 1: Exam Name Dropdown
+        ctk.CTkLabel(
+            filter_frame,
+            text="Exam Name:",
+            font=ctk.CTkFont(size=13)
+        ).grid(row=0, column=2, padx=5, pady=5, sticky="w")
+        
+        exam_options = ["All", "First Term", "Second Term", "Third Term"]
+        self.exam_name_dropdown = ctk.CTkOptionMenu(
+            filter_frame,
+            values=exam_options,
+            width=180
+        )
+        # Restore exam name selection
+        current_exam = self.filters.get("exam_name") or "All"
+        self.exam_name_dropdown.set(current_exam)
+        self.exam_name_dropdown.grid(row=0, column=3, padx=5, pady=5, sticky="w")
+        
+        # Row 2: Exam Year Dropdown
+        ctk.CTkLabel(
+            filter_frame,
+            text="Exam Year:",
+            font=ctk.CTkFont(size=13)
+        ).grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        
+        # Get unique years from database
+        all_results = self.db.get_all_exam_results()
+        unique_years = ["All"] + sorted(list(set([str(r[4]) for r in all_results])), reverse=True)
+        
+        self.exam_year_dropdown = ctk.CTkOptionMenu(
+            filter_frame,
+            values=unique_years if len(unique_years) > 1 else ["All", "2025"],
+            width=180
+        )
+        # Restore year selection
+        current_year = self.filters.get("exam_year") or "All"
+        self.exam_year_dropdown.set(current_year)
+        self.exam_year_dropdown.grid(row=1, column=1, padx=5, pady=5, sticky="w")
+        
+        # Buttons
+        button_frame = ctk.CTkFrame(filter_frame, fg_color="transparent")
+        button_frame.grid(row=1, column=2, columnspan=2, pady=5, sticky="e")
+        
+        ctk.CTkButton(
+            button_frame,
+            text="🔍 Apply Filters",
+            width=130,
+            command=self._apply_filters_from_controls
+        ).pack(side="left", padx=5)
+        
+        ctk.CTkButton(
+            button_frame,
+            text="Clear Filters",
+            width=120,
+            fg_color="#666666",
+            hover_color="#888888",
+            command=self._clear_filters
+        ).pack(side="left", padx=5)
         
         # Results display area
         scroll_frame = ctk.CTkScrollableFrame(self.results_frame, height=450)
         scroll_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # Get results
-        student_name = self.filters.get("Student Name:")
-        exam_name = self.filters.get("Exam Name:")
-        exam_date = self.filters.get("Exam Date:")
+        # Get results with filters
+        student_name = self.filters.get("student_name")
+        exam_name = self.filters.get("exam_name")
+        exam_year = self.filters.get("exam_year")
         
-        results = self.db.get_all_exam_results(student_name, exam_name, exam_date)
+        results = self.db.get_all_exam_results(student_name, exam_name, exam_year)
         
         if not results:
             no_results_msg = "No results match your filters." if any(self.filters.values()) else "No exam results found."
@@ -72,8 +137,8 @@ class ViewExamResultsView:
         header_frame = ctk.CTkFrame(scroll_frame)
         header_frame.pack(fill="x", padx=10, pady=5)
         
-        headers = ["ID", "Student", "Subject", "Exam", "Date", "Marks", "Grade"]
-        widths = [50, 120, 100, 120, 100, 80, 60]
+        headers = ["ID", "Student", "Exam", "Year", "Marks", "Grade", "Actions"]
+        widths = [50, 120, 120, 80, 100, 70, 300]
         
         for i, (header, width) in enumerate(zip(headers, widths)):
             ctk.CTkLabel(
@@ -102,21 +167,16 @@ class ViewExamResultsView:
         result_frame = ctk.CTkFrame(parent)
         result_frame.pack(fill="x", padx=10, pady=2)
         
-        # Calculate percentage
-        percentage = (result[6] / result[7] * 100) if result[7] > 0 else 0
-        marks_display = f"{result[6]}/{result[7]} ({percentage:.1f}%)"
-        
         values = [
             result[0],  # ID
             result[2],  # Student name
-            result[3],  # Subject
-            result[4],  # Exam name
-            result[5],  # Exam date
-            marks_display,  # Marks with percentage
-            result[8] or "N/A"  # Grade
+            result[3],  # Exam name
+            result[4],  # Exam year
+            result[5],  # Marks obtained
+            result[6]   # Grade
         ]
         
-        for i, (value, width) in enumerate(zip(values, widths)):
+        for i, (value, width) in enumerate(zip(values, widths[:-1])):
             ctk.CTkLabel(
                 result_frame,
                 text=str(value),
@@ -124,23 +184,65 @@ class ViewExamResultsView:
                 width=width
             ).grid(row=0, column=i, padx=5, pady=5)
         
+        # Action buttons frame
+        action_frame = ctk.CTkFrame(result_frame, fg_color="transparent")
+        action_frame.grid(row=0, column=len(values), padx=5, pady=5)
+        
         # View student button
         ctk.CTkButton(
-            result_frame,
+            action_frame,
             text="View Student",
-            width=100,
+            width=90,
             command=lambda: self._view_student(result[1])
-        ).grid(row=0, column=len(values), padx=5)
+        ).pack(side="left", padx=2)
+        
+        # Edit button
+        ctk.CTkButton(
+            action_frame,
+            text="Edit",
+            width=60,
+            fg_color="#FF8C00",
+            hover_color="#FFA500",
+            command=lambda: self._edit_result(result[0])
+        ).pack(side="left", padx=2)
+        
+        # Delete button
+        ctk.CTkButton(
+            action_frame,
+            text="Delete",
+            width=60,
+            fg_color="#DC143C",
+            hover_color="#B22222",
+            command=lambda: self._delete_result(result[0])
+        ).pack(side="left", padx=2)
+    
+    def _apply_filters_from_controls(self):
+        """Apply filters from the control values"""
+        student_name = self.student_name_entry.get().strip() or None
+        exam_name = self.exam_name_dropdown.get()
+        exam_name = None if exam_name == "All" else exam_name
+        exam_year = self.exam_year_dropdown.get()
+        exam_year = None if exam_year == "All" else exam_year
+        
+        self.filters = {
+            "student_name": student_name,
+            "exam_name": exam_name,
+            "exam_year": exam_year
+        }
+        self._create_ui()
     
     def _apply_filters(self, filter_values):
         """Apply filters and refresh results"""
-        # Validate date if provided
-        exam_date = filter_values.get("Exam Date:")
-        if exam_date:
+        # Validate year if provided
+        exam_year = filter_values.get("Exam Year:")
+        if exam_year:
             try:
-                datetime.strptime(exam_date, "%Y-%m-%d")
+                year_val = int(exam_year)
+                if year_val < 1900 or year_val > 2100:
+                    messagebox.showerror("Invalid Year", "Please enter a valid year (1900-2100)")
+                    return
             except ValueError:
-                messagebox.showerror("Invalid Date", "Please use YYYY-MM-DD format for date")
+                messagebox.showerror("Invalid Year", "Please enter a valid year")
                 return
         
         self.filters = filter_values
@@ -150,6 +252,148 @@ class ViewExamResultsView:
         """Clear all filters and show all results"""
         self.filters = {}
         self._create_ui()
+    
+    def _edit_result(self, result_id):
+        """Edit exam result"""
+        result = self.db.get_exam_result_by_id(result_id)
+        if not result:
+            messagebox.showerror("Error", "Result not found")
+            return
+        
+        # Create edit dialog using reusable component
+        dialog = EditDialog(
+            self.parent,
+            title=f"Edit Exam Result - {result[2]}",
+            width=600,
+            height=650
+        )
+        
+        # Add title
+        dialog.add_title("Edit Exam Result")
+        
+        # Add form frame
+        form_frame = dialog.add_form_frame()
+        
+        # Student (read-only)
+        ctk.CTkLabel(form_frame, text="Student:", font=ctk.CTkFont(size=12)).grid(
+            row=0, column=0, sticky="w", padx=20, pady=10
+        )
+        student_label = ctk.CTkLabel(
+            form_frame,
+            text=result[2],
+            font=ctk.CTkFont(size=12, weight="bold")
+        )
+        student_label.grid(row=0, column=1, sticky="w", padx=20, pady=10)
+        
+        # Exam Name (dropdown)
+        ctk.CTkLabel(form_frame, text="Exam Name:", font=ctk.CTkFont(size=12)).grid(
+            row=1, column=0, sticky="w", padx=20, pady=10
+        )
+        exam_options = ["First Term", "Second Term", "Third Term"]
+        exam_name_dropdown = ctk.CTkOptionMenu(form_frame, values=exam_options, width=250)
+        exam_name_dropdown.set(result[3])
+        exam_name_dropdown.grid(row=1, column=1, sticky="w", padx=20, pady=10)
+        
+        # Exam Year
+        ctk.CTkLabel(form_frame, text="Exam Year:", font=ctk.CTkFont(size=12)).grid(
+            row=2, column=0, sticky="w", padx=20, pady=10
+        )
+        exam_year_entry = ctk.CTkEntry(form_frame, width=250, placeholder_text="2025")
+        exam_year_entry.insert(0, str(result[4]))
+        exam_year_entry.grid(row=2, column=1, sticky="w", padx=20, pady=10)
+        
+        # Marks Obtained
+        ctk.CTkLabel(form_frame, text="Marks Obtained:", font=ctk.CTkFont(size=12)).grid(
+            row=3, column=0, sticky="w", padx=20, pady=10
+        )
+        marks_obtained_entry = ctk.CTkEntry(form_frame, width=250)
+        marks_obtained_entry.insert(0, str(result[5]))
+        marks_obtained_entry.grid(row=3, column=1, sticky="w", padx=20, pady=10)
+        
+        # Grade (Required)
+        ctk.CTkLabel(form_frame, text="Grade (Required):", font=ctk.CTkFont(size=12)).grid(
+            row=4, column=0, sticky="w", padx=20, pady=10
+        )
+        grade_entry = ctk.CTkEntry(form_frame, width=250)
+        grade_entry.insert(0, result[6])
+        grade_entry.grid(row=4, column=1, sticky="w", padx=20, pady=10)
+        
+        def save_changes():
+            """Save the updated exam result"""
+            # Validate inputs
+            exam_name = exam_name_dropdown.get().strip()
+            exam_year = exam_year_entry.get().strip()
+            marks_obtained = marks_obtained_entry.get().strip()
+            grade = grade_entry.get().strip()
+            
+            if not all([exam_name, exam_year, marks_obtained, grade]):
+                messagebox.showerror("Validation Error", "All fields are required")
+                return
+            
+            # Validate year
+            try:
+                exam_year_val = int(exam_year)
+                if exam_year_val < 1900 or exam_year_val > 2100:
+                    messagebox.showerror("Invalid Year", "Please enter a valid year (1900-2100)")
+                    return
+            except ValueError:
+                messagebox.showerror("Invalid Year", "Please enter a valid year")
+                return
+            
+            # Validate marks
+            try:
+                marks_obtained_val = float(marks_obtained)
+                
+                if marks_obtained_val < 0:
+                    messagebox.showerror("Invalid Marks", "Marks must be a positive number")
+                    return
+            except ValueError:
+                messagebox.showerror("Invalid Marks", "Please enter a valid number for marks")
+                return
+            
+            # Update the result
+            result_data = (
+                result[1],  # student_id (unchanged)
+                exam_name,
+                exam_year_val,
+                marks_obtained_val,
+                grade
+            )
+            
+            success, message = self.db.update_exam_result(result_id, result_data)
+            
+            if success:
+                dialog.destroy()
+                self._create_ui()  # Refresh the table
+            else:
+                messagebox.showerror("Error", f"Failed to update result: {message}")
+        
+        # Add standard button frame
+        dialog.add_button_frame(save_changes)
+    
+    def _delete_result(self, result_id):
+        """Delete exam result after confirmation"""
+        result = self.db.get_exam_result_by_id(result_id)
+        if not result:
+            messagebox.showerror("Error", "Result not found")
+            return
+        
+        def delete_confirmed():
+            """Execute deletion after confirmation"""
+            success, message = self.db.delete_exam_result(result_id)
+            if success:
+                self._create_ui()  # Refresh the table
+            else:
+                messagebox.showerror("Error", f"Failed to delete result: {message}")
+        
+        # Show custom confirmation dialog
+        ConfirmDeleteDialog(
+            self.parent,
+            title="Confirm Delete",
+            main_message=f"Are you sure you want to delete\n{result[2]}'s exam result?\n\nExam: {result[3]}\nYear: {result[4]}",
+            warning_message="This action cannot be undone!",
+            on_confirm=delete_confirmed
+        )
     
     def _view_student(self, student_id):
         """View student details from exam results"""
