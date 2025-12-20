@@ -265,7 +265,13 @@ class AddStudentView:
             self.guardian_nic_entry.delete(0, 'end')
             self.guardian_contact_entry.delete(0, 'end')
             self.image_path = None
-            self.preview_label.configure(image=None, text="")
-            self.preview_label.image = None
+            self.preview_label.configure(
+                image="",
+                text="👤",
+                font=ctk.CTkFont(size=80),
+                fg_color="#2b2b2b"
+            )
+            if hasattr(self.preview_label, 'image'):
+                delattr(self.preview_label, 'image')
         else:
             self.form_message.configure(text=f"Error: {result}", text_color="red")
