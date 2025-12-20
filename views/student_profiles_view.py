@@ -138,6 +138,11 @@ class StudentProfilesView:
         detail_window = ctk.CTkToplevel(self.parent)
         detail_window.title(f"Student Details - {student[1]}")
         detail_window.geometry("550x700")
+        
+        # Make window resizable (allows maximize button)
+        detail_window.resizable(True, True)
+        detail_window.minsize(500, 600)
+        
         detail_window.grab_set()
         detail_window.focus_force()
         
@@ -301,6 +306,11 @@ class StudentProfilesView:
         results_window = ctk.CTkToplevel(self.parent)
         results_window.title(f"Exam Results - {student[1]}")
         results_window.geometry("600x600")
+        
+        # Make window resizable (allows maximize button)
+        results_window.resizable(True, True)
+        results_window.minsize(500, 400)
+        
         results_window.grab_set()
         results_window.focus_force()
         
@@ -563,8 +573,13 @@ class StudentProfilesView:
         certificates_window = ctk.CTkToplevel(self.parent)
         certificates_window.title(f"Certificates - {student[1]}")
         certificates_window.geometry("900x700")
-        certificates_window.transient(self.parent)
+        
+        # Make window resizable (allows maximize button)
+        certificates_window.resizable(True, True)
+        certificates_window.minsize(600, 400)
+        
         certificates_window.grab_set()
+        certificates_window.focus_force()
         
         # Center window
         certificates_window.update_idletasks()
@@ -572,30 +587,30 @@ class StudentProfilesView:
         y = (certificates_window.winfo_screenheight() // 2) - (700 // 2)
         certificates_window.geometry(f"+{x}+{y}")
         
-        # Main container
-        main_frame = ctk.CTkFrame(certificates_window, fg_color="transparent")
-        main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        # Content frame (matching exam results structure)
+        content = ctk.CTkFrame(certificates_window)
+        content.pack(fill="both", expand=True, padx=20, pady=20)
         
         # Title
         ctk.CTkLabel(
-            main_frame,
+            content,
             text=f"Certificates for {student[1]}",
             font=ctk.CTkFont(size=20, weight="bold")
-        ).pack(pady=(0, 15))
+        ).pack(pady=(10, 10))
         
         # Get certificates for this student
         certificates = self.db.get_certificates_by_student(student[0])
         
         if not certificates:
             ctk.CTkLabel(
-                main_frame,
+                content,
                 text="No certificates found for this student.",
                 font=ctk.CTkFont(size=14)
             ).pack(pady=50)
         else:
             # Scrollable frame for gallery
-            scroll_frame = ctk.CTkScrollableFrame(main_frame)
-            scroll_frame.pack(fill="both", expand=True, pady=10)
+            scroll_frame = ctk.CTkScrollableFrame(content)
+            scroll_frame.pack(fill="both", expand=True, padx=10, pady=10)
             
             # Gallery container with grid layout
             gallery_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
@@ -709,15 +724,13 @@ class StudentProfilesView:
                     command=lambda cid=cert_id: self._delete_certificate(cid, student, certificates_window)
                 ).pack(pady=(0, 10))
         
-        # Close button
+        # Close button (matching exam results structure)
         ctk.CTkButton(
-            main_frame,
+            content,
             text="Close",
-            font=ctk.CTkFont(size=14),
-            width=120,
-            height=40,
+            width=150,
             command=certificates_window.destroy
-        ).pack(pady=10)
+        ).pack(pady=15)
     
     def _delete_certificate(self, cert_id, student, certificates_window):
         """Delete a certificate after confirmation"""
