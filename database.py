@@ -48,6 +48,8 @@ class Database:
                 guardian_nic TEXT NOT NULL,
                 guardian_contact TEXT NOT NULL,
                 image_path TEXT,
+                registration_date DATE,
+                grade TEXT,
                 created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
             )
         ''')
@@ -118,19 +120,32 @@ class Database:
         
         return user is not None
     
-    def add_student(self, student_data):
-        """Add a new student to the database"""
+    def add_student(self, student_data, certificates_data=None):
+        """Add a new student to the database with optional certificates"""
         self.connect()
         try:
             self.cursor.execute(
                 '''INSERT INTO students 
                    (student_name, date_of_birth, gender, address, 
-                    guardian_name, guardian_nic, guardian_contact, image_path) 
-                   VALUES (?, ?, ?, ?, ?, ?, ?, ?)''',
+                    guardian_name, guardian_nic, guardian_contact, image_path,
+                    registration_date, grade) 
+                   VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)''',
                 student_data
             )
             self.conn.commit()
             student_id = self.cursor.lastrowid
+            
+            # Add certificates if provided
+            if certificates_data:
+                for cert_path, cert_note in certificates_data:
+                    self.cursor.execute(
+                        '''INSERT INTO certificates 
+                           (student_id, certificate_image_path, note) 
+                           VALUES (?, ?, ?)''',
+                        (student_id, cert_path, cert_note)
+                    )
+                self.conn.commit()
+            
             self.close()
             return True, student_id
         except Exception as e:
@@ -140,7 +155,7 @@ class Database:
     def get_all_students(self):
         """Retrieve all students from database"""
         self.connect()
-        self.cursor.execute("SELECT * FROM students ORDER BY student_name")
+        self.cursor.execute("SELECT * FROM students ORDER BY id")
         students = self.cursor.fetchall()
         self.close()
         return students
@@ -249,7 +264,8 @@ class Database:
             self.cursor.execute(
                 '''UPDATE students 
                    SET student_name=?, date_of_birth=?, gender=?, address=?, 
-                       guardian_name=?, guardian_nic=?, guardian_contact=?, image_path=?
+                   guardian_name = ?, guardian_nic = ?, guardian_contact = ?, image_path = ?,
+                   registration_date = ?, grade = ?
                    WHERE id=?''',
                 (*student_data, student_id)
             )

@@ -75,12 +75,14 @@ class StudentDetailWindow:
             ("Student ID:", self.student[0]),
             ("Name:", self.student[1]),
             ("Date of Birth:", self.student[2]),
+            ("Grade:", self.student[10] if len(self.student) > 10 else "N/A"),
             ("Gender:", self.student[3]),
             ("Address:", self.student[4]),
             ("Guardian Name:", self.student[5]),
             ("Guardian NIC:", self.student[6]),
             ("Guardian Contact:", self.student[7]),
-            ("Registered:", self.student[9] if len(self.student) > 9 else "N/A")
+            ("Registration Date:", self.student[9] if len(self.student) > 9 else "N/A"),
+            ("Registered:", self.student[11] if len(self.student) > 11 else "N/A")
         ]
         
         for label, value in fields:

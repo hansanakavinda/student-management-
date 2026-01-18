@@ -68,6 +68,8 @@ class StudentEditWindow:
             btn_frame,
             text="Choose Image",
             width=130,
+            fg_color="#1E88E5",
+            hover_color="#1976D2",
             command=self._choose_image
         ).pack(side="left", padx=5)
         
@@ -75,8 +77,8 @@ class StudentEditWindow:
             btn_frame,
             text="Cancel Image",
             width=130,
-            fg_color="#8B0000",
-            hover_color="#A52A2A",
+            fg_color="#E53935",
+            hover_color="#D32F2F",
             command=self._cancel_image
         ).pack(side="left", padx=5)
         
@@ -89,10 +91,10 @@ class StudentEditWindow:
         fields_config = [
             ("Student Name:", self.student[1], 0),
             ("Date of Birth:", self.student[2], 1),
-            ("Address:", self.student[4], 3),
-            ("Guardian Name:", self.student[5], 4),
-            ("Guardian NIC:", self.student[6], 5),
-            ("Guardian Contact:", self.student[7], 6),
+            ("Address:", self.student[4], 4),
+            ("Guardian Name:", self.student[5], 5),
+            ("Guardian NIC:", self.student[6], 6),
+            ("Guardian Contact:", self.student[7], 7),
         ]
         
         for label, value, row in fields_config:
@@ -107,16 +109,42 @@ class StudentEditWindow:
             entry.grid(row=row, column=1, padx=10, pady=10)
             self.entries[label] = entry
         
+        # Grade dropdown (after DOB)
+        ctk.CTkLabel(
+            form_frame,
+            text="Grade:",
+            font=ctk.CTkFont(size=14)
+        ).grid(row=2, column=0, sticky="w", padx=10, pady=10)
+        
+        grade_options = [f"Grade {i}" for i in range(1, 14)]
+        self.grade_dropdown = ctk.CTkOptionMenu(form_frame, values=grade_options, width=300)
+        current_grade = self.student[10] if len(self.student) > 10 and self.student[10] else "Grade 1"
+        self.grade_dropdown.set(current_grade)
+        self.grade_dropdown.grid(row=2, column=1, padx=10, pady=10, sticky="w")
+        
+        # Registration Date
+        ctk.CTkLabel(
+            form_frame,
+            text="Registration Date:",
+            font=ctk.CTkFont(size=14)
+        ).grid(row=3, column=0, sticky="w", padx=10, pady=10)
+        
+        reg_date_entry = ctk.CTkEntry(form_frame, width=300)
+        reg_date_value = self.student[9] if len(self.student) > 9 and self.student[9] else datetime.now().strftime("%Y-%m-%d")
+        reg_date_entry.insert(0, reg_date_value)
+        reg_date_entry.grid(row=3, column=1, padx=10, pady=10)
+        self.entries["Registration Date:"] = reg_date_entry
+        
         # Gender
         ctk.CTkLabel(
             form_frame,
             text="Gender:",
             font=ctk.CTkFont(size=14)
-        ).grid(row=2, column=0, sticky="w", padx=10, pady=10)
+        ).grid(row=8, column=0, sticky="w", padx=10, pady=10)
         
         self.gender_var = ctk.StringVar(value=self.student[3])
         gender_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
-        gender_frame.grid(row=2, column=1, sticky="w", padx=10, pady=10)
+        gender_frame.grid(row=8, column=1, sticky="w", padx=10, pady=10)
         
         ctk.CTkRadioButton(
             gender_frame,
@@ -176,9 +204,11 @@ class StudentEditWindow:
         guardian_name = self.entries["Guardian Name:"].get().strip()
         guardian_nic = self.entries["Guardian NIC:"].get().strip()
         guardian_contact = self.entries["Guardian Contact:"].get().strip()
+        grade = self.grade_dropdown.get().strip()
+        reg_date = self.entries["Registration Date:"].get().strip()
         
         # Validate
-        if not all([student_name, dob, address, guardian_name, guardian_nic, guardian_contact]):
+        if not all([student_name, dob, address, guardian_name, guardian_nic, guardian_contact, grade, reg_date]):
             self.message_label.configure(
                 text="All fields except image are required!",
                 text_color="red"
@@ -196,7 +226,16 @@ class StudentEditWindow:
             datetime.strptime(dob, "%Y-%m-%d")
         except ValueError:
             self.message_label.configure(
-                text="Invalid date format! Use YYYY-MM-DD",
+                text="Invalid date of birth format! Use YYYY-MM-DD",
+                text_color="red"
+            )
+            return
+        
+        try:
+            datetime.strptime(reg_date, "%Y-%m-%d")
+        except ValueError:
+            self.message_label.configure(
+                text="Invalid registration date format! Use YYYY-MM-DD",
                 text_color="red"
             )
             return
@@ -221,7 +260,8 @@ class StudentEditWindow:
         # Update database
         student_data = (
             student_name, dob, gender, address,
-            guardian_name, guardian_nic, guardian_contact, saved_image_path
+            guardian_name, guardian_nic, guardian_contact, saved_image_path,
+            reg_date, grade
         )
         success, message = self.db.update_student(self.student[0], student_data)
         
