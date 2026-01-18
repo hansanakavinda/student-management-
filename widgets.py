@@ -1,6 +1,9 @@
 """Reusable UI widgets for the Student Management System"""
 import customtkinter as ctk
 from typing import Callable, Optional
+from PIL import Image, ImageTk
+import tkinter as tk
+import os
 
 
 class SearchWidget(ctk.CTkFrame):
@@ -347,3 +350,65 @@ class ConfirmDeleteDialog(ctk.CTkToplevel):
             hover_color="#888888",
             command=self.destroy
         ).pack(side="left", padx=15)
+
+
+class WatermarkWidget(ctk.CTkLabel):
+    """Reusable watermark widget that displays a logo with configurable opacity"""
+    
+    def __init__(self, parent, image_path: str = "logo.png", opacity: float = 0.3, 
+                 size: tuple = None, **kwargs):
+        """
+        Create a watermark widget with logo image
+        
+        Args:
+            parent: Parent widget
+            image_path: Path to the logo image file
+            opacity: Opacity level (0.0 to 1.0), default 0.3
+            size: Tuple (width, height) for image size, if None uses original size
+            **kwargs: Additional CTkLabel arguments
+        """
+        super().__init__(parent, text="", **kwargs)
+        
+        self.image_path = image_path
+        self.opacity = max(0.0, min(1.0, opacity))  # Clamp between 0 and 1
+        self.size = size
+        self.photo = None
+        
+        # Load and display the watermark
+        self._load_watermark()
+    
+    def _load_watermark(self):
+        """Load and process the watermark image"""
+        try:
+            if not os.path.exists(self.image_path):
+                self.configure(text="Logo not found", text_color="gray")
+                return
+            
+            # Load image with PIL
+            img = Image.open(self.image_path)
+            
+            # Resize if size is specified
+            if self.size:
+                img = img.resize(self.size, Image.Resampling.LANCZOS)
+            
+            # Convert to RGBA if not already
+            if img.mode != 'RGBA':
+                img = img.convert('RGBA')
+            
+            # Adjust opacity
+            alpha = img.split()[3]
+            alpha = alpha.point(lambda p: int(p * self.opacity))
+            img.putalpha(alpha)
+            
+            # Convert to CTkImage for customtkinter
+            self.photo = ctk.CTkImage(light_image=img, dark_image=img, 
+                                     size=self.size if self.size else img.size)
+            self.configure(image=self.photo)
+            
+        except Exception as e:
+            self.configure(text=f"Error loading logo: {e}", text_color="red")
+    
+    def update_opacity(self, new_opacity: float):
+        """Update the watermark opacity"""
+        self.opacity = max(0.0, min(1.0, new_opacity))
+        self._load_watermark()

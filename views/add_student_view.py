@@ -5,6 +5,7 @@ from tkinter import filedialog
 from PIL import Image
 import shutil
 import os
+from widgets import WatermarkWidget
 
 
 class AddStudentView:
@@ -20,6 +21,16 @@ class AddStudentView:
         self.form_frame = ctk.CTkScrollableFrame(parent)
         self.form_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
+        # Add watermark as background using place() so it doesn't interfere with grid layout
+        # self.watermark = WatermarkWidget(
+        #     self.form_frame,
+        #     image_path="logo.png",
+        #     opacity=0.1,
+        #     size=(600, 600)
+        # )
+        # # Place it at the center - it will be behind all grid elements
+        # self.watermark.place(relx=0.5, rely=0.5, anchor="center")
+
         self._create_form()
     
     def _create_form(self):
