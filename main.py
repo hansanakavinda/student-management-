@@ -29,8 +29,8 @@ class App(ctk.CTk):
         # Show login page
         self.current_user = None
         # Change to show_login() to start with login page
-        self.show_login()
-        # self.show_main_menu() 
+        # self.show_login()
+        self.show_main_menu() 
         
     def center_window(self):
         """Center the window on screen"""

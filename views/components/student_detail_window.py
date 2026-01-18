@@ -36,11 +36,17 @@ class StudentDetailWindow:
         y = (self.window.winfo_screenheight() // 2) - 350
         self.window.geometry(f"900x700+{x}+{y}")
         
-        # Content
+        # Content - scrollable frame with pack
         content = ctk.CTkScrollableFrame(self.window)
         content.pack(fill="both", expand=True, padx=20, pady=20)
         
-        self._create_content(content)
+        # Create centered container within the scrollable content
+        centered_container = ctk.CTkFrame(content, fg_color="transparent")
+        centered_container.pack(expand=True, pady=20)
+        
+        self._create_content(centered_container)
+        
+        self._create_button_frame(content)
     
     def _create_content(self, content):
         """Create window content"""
@@ -48,7 +54,8 @@ class StudentDetailWindow:
         ctk.CTkLabel(
             content,
             text="Student Profile",
-            font=ctk.CTkFont(size=22, weight="bold")
+            font=ctk.CTkFont(size=22, weight="bold"),
+            width=400
         ).pack(pady=(10, 20))
         
         # Display image if available
@@ -98,7 +105,7 @@ class StudentDetailWindow:
         self._create_notes_section(content)
         
         # Action buttons
-        self._create_button_frame(content)
+        # self._create_button_frame(content)
     
     def _create_notes_section(self, content):
         """Create notes display section"""
@@ -179,18 +186,6 @@ class StudentDetailWindow:
             fg_color="#9b59b6",
             hover_color="#8e44ad",
             command=lambda: self.on_view_certificates(self.student)
-        ).pack(side="left", padx=10)
-        
-        # Close button
-        ctk.CTkButton(
-            button_frame,
-            text="Close",
-            font=ctk.CTkFont(size=14),
-            width=120,
-            height=40,
-            fg_color="#666666",
-            hover_color="#888888",
-            command=self.window.destroy
         ).pack(side="left", padx=10)
     
     def close(self):

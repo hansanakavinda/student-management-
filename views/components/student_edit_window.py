@@ -25,22 +25,30 @@ class StudentEditWindow:
         self.edit_window = EditDialog(
             self.parent,
             title=f"Edit Student - {self.student[1]}",
-            width=600,
+            width=700,
             height=750
         )
         
-        # Add title
-        self.edit_window.add_title("Edit Student Information")
-        
-        # Get content frame
+        # Get content frame and configure for centering
         content = self.edit_window.content
+        
+        # Create centered container within the scrollable content
+        centered_container = ctk.CTkFrame(content, fg_color="transparent")
+        centered_container.pack(expand=True, pady=20)
+        
+        # Add title
+        ctk.CTkLabel(
+            centered_container,
+            text="Edit Student Information",
+            font=ctk.CTkFont(size=22, weight="bold")
+        ).pack(pady=(10, 20))
         
         # Initialize selected image
         self.current_image_path = self.student[8] if len(self.student) > 8 and self.student[8] else None
         self.selected_image = [self.current_image_path]
         
         # Create form
-        self._create_form(content)
+        self._create_form(centered_container)
     
     def _create_form(self, content):
         """Create the edit form"""

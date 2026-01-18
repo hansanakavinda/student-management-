@@ -13,14 +13,18 @@ class AddExamResultsView:
         # Create main frame
         self.form_frame = ctk.CTkScrollableFrame(parent)
         self.form_frame.pack(fill="both", expand=True, padx=20, pady=20)
+
+        # Create centered container within the scrollable content
+        centered_container = ctk.CTkFrame(self.form_frame, fg_color="transparent")
+        centered_container.pack(expand=True, pady=20)
         
-        self._create_ui()
+        self._create_ui(centered_container)
     
-    def _create_ui(self):
+    def _create_ui(self, content):
         """Create the exam results form"""
         # Title
         title = ctk.CTkLabel(
-            self.form_frame,
+            content,
             text="Add Exam Results",
             font=ctk.CTkFont(size=24, weight="bold")
         )
@@ -30,14 +34,14 @@ class AddExamResultsView:
         students = self.db.get_all_students()
         if not students:
             ctk.CTkLabel(
-                self.form_frame,
+                content,
                 text="No students registered. Please add students first.",
                 font=ctk.CTkFont(size=14)
             ).grid(row=1, column=0, columnspan=2, pady=50)
             return
         
         # Search frame for students
-        search_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
+        search_frame = ctk.CTkFrame(content, fg_color="transparent")
         search_frame.grid(row=1, column=0, columnspan=2, pady=10)
         
         ctk.CTkLabel(search_frame, text="Search Student:", font=ctk.CTkFont(size=14)).pack(side="left", padx=5)
@@ -66,55 +70,55 @@ class AddExamResultsView:
         # === PERSISTENT FIELDS AT TOP ===
         
         # Exam Name dropdown
-        ctk.CTkLabel(self.form_frame, text="Exam Name:", font=ctk.CTkFont(size=14)).grid(
+        ctk.CTkLabel(content, text="Exam Name:", font=ctk.CTkFont(size=14)).grid(
             row=2, column=0, sticky="w", padx=20, pady=10
         )
         exam_options = ["First Term", "Second Term", "Third Term"]
-        self.exam_name_field = ctk.CTkOptionMenu(self.form_frame, values=exam_options, width=300)
+        self.exam_name_field = ctk.CTkOptionMenu(content, values=exam_options, width=300)
         self.exam_name_field.set("First Term")
         self.exam_name_field.grid(row=2, column=1, padx=20, pady=10, sticky="w")
         
         # Exam Year with clear button
-        ctk.CTkLabel(self.form_frame, text="Exam Year:", font=ctk.CTkFont(size=14)).grid(
+        ctk.CTkLabel(content, text="Exam Year:", font=ctk.CTkFont(size=14)).grid(
             row=3, column=0, sticky="w", padx=20, pady=10
         )
-        self.exam_year_field = FieldWithClearButton(self.form_frame, placeholder="2025", width=240)
+        self.exam_year_field = FieldWithClearButton(content, placeholder="2025", width=240)
         self.exam_year_field.grid(row=3, column=1, padx=20, pady=10, sticky="w")
         
         # Separator
-        separator = ctk.CTkFrame(self.form_frame, height=2, fg_color="gray")
+        separator = ctk.CTkFrame(content, height=2, fg_color="gray")
         separator.grid(row=4, column=0, columnspan=2, sticky="ew", padx=20, pady=15)
         
         # === STUDENT-SPECIFIC FIELDS ===
         
         # Student Selection
-        ctk.CTkLabel(self.form_frame, text="Select Student:", font=ctk.CTkFont(size=14)).grid(
+        ctk.CTkLabel(content, text="Select Student:", font=ctk.CTkFont(size=14)).grid(
             row=5, column=0, sticky="w", padx=20, pady=10
         )
-        self.student_select = ctk.CTkOptionMenu(self.form_frame, values=student_options, width=300)
+        self.student_select = ctk.CTkOptionMenu(content, values=student_options, width=300)
         self.student_select.grid(row=5, column=1, padx=20, pady=10)
         
         # Marks Obtained
-        ctk.CTkLabel(self.form_frame, text="Marks Obtained:", font=ctk.CTkFont(size=14)).grid(
+        ctk.CTkLabel(content, text="Marks Obtained:", font=ctk.CTkFont(size=14)).grid(
             row=6, column=0, sticky="w", padx=20, pady=10
         )
-        self.marks_obtained_entry = ctk.CTkEntry(self.form_frame, width=300, placeholder_text="85")
+        self.marks_obtained_entry = ctk.CTkEntry(content, width=300, placeholder_text="85")
         self.marks_obtained_entry.grid(row=6, column=1, padx=20, pady=10)
         
         # Grade (Required)
-        ctk.CTkLabel(self.form_frame, text="Grade (Required):", font=ctk.CTkFont(size=14)).grid(
+        ctk.CTkLabel(content, text="Grade (Required):", font=ctk.CTkFont(size=14)).grid(
             row=7, column=0, sticky="w", padx=20, pady=10
         )
-        self.grade_entry = ctk.CTkEntry(self.form_frame, width=300, placeholder_text="A")
+        self.grade_entry = ctk.CTkEntry(content, width=300, placeholder_text="A")
         self.grade_entry.grid(row=7, column=1, padx=20, pady=10)
         
         # Message label
-        self.result_message = ctk.CTkLabel(self.form_frame, text="", font=ctk.CTkFont(size=12))
+        self.result_message = ctk.CTkLabel(content, text="", font=ctk.CTkFont(size=12))
         self.result_message.grid(row=8, column=0, columnspan=2, pady=10)
         
         # Submit button
         ctk.CTkButton(
-            self.form_frame,
+            content,
             text="Add Result",
             font=ctk.CTkFont(size=16, weight="bold"),
             width=200,

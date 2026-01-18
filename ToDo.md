@@ -1,4 +1,7 @@
-1. center the content of all the pages.
+1. center the content of the following pages. so they stay centered even when the window size is changed.
+    student profile view page
+    student profile edit window
+
 
 2. add columns to students table, 
     regitration date which is the current date

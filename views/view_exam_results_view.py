@@ -188,14 +188,6 @@ class ViewExamResultsView:
         action_frame = ctk.CTkFrame(result_frame, fg_color="transparent")
         action_frame.grid(row=0, column=len(values), padx=5, pady=5)
         
-        # View student button
-        ctk.CTkButton(
-            action_frame,
-            text="View Student",
-            width=90,
-            command=lambda: self._view_student(result[1])
-        ).pack(side="left", padx=2)
-        
         # Edit button
         ctk.CTkButton(
             action_frame,
@@ -273,48 +265,52 @@ class ViewExamResultsView:
         
         # Add form frame
         form_frame = dialog.add_form_frame()
+
+        # Create centered container within the scrollable content
+        centered_container = ctk.CTkFrame(form_frame, fg_color="transparent")
+        centered_container.pack(expand=True, pady=20)
         
         # Student (read-only)
-        ctk.CTkLabel(form_frame, text="Student:", font=ctk.CTkFont(size=12)).grid(
+        ctk.CTkLabel(centered_container, text="Student:", font=ctk.CTkFont(size=12)).grid(
             row=0, column=0, sticky="w", padx=20, pady=10
         )
         student_label = ctk.CTkLabel(
-            form_frame,
+            centered_container,
             text=result[2],
             font=ctk.CTkFont(size=12, weight="bold")
         )
         student_label.grid(row=0, column=1, sticky="w", padx=20, pady=10)
         
         # Exam Name (dropdown)
-        ctk.CTkLabel(form_frame, text="Exam Name:", font=ctk.CTkFont(size=12)).grid(
+        ctk.CTkLabel(centered_container, text="Exam Name:", font=ctk.CTkFont(size=12)).grid(
             row=1, column=0, sticky="w", padx=20, pady=10
         )
         exam_options = ["First Term", "Second Term", "Third Term"]
-        exam_name_dropdown = ctk.CTkOptionMenu(form_frame, values=exam_options, width=250)
+        exam_name_dropdown = ctk.CTkOptionMenu(centered_container, values=exam_options, width=250)
         exam_name_dropdown.set(result[3])
         exam_name_dropdown.grid(row=1, column=1, sticky="w", padx=20, pady=10)
         
         # Exam Year
-        ctk.CTkLabel(form_frame, text="Exam Year:", font=ctk.CTkFont(size=12)).grid(
+        ctk.CTkLabel(centered_container, text="Exam Year:", font=ctk.CTkFont(size=12)).grid(
             row=2, column=0, sticky="w", padx=20, pady=10
         )
-        exam_year_entry = ctk.CTkEntry(form_frame, width=250, placeholder_text="2025")
+        exam_year_entry = ctk.CTkEntry(centered_container, width=250, placeholder_text="2025")
         exam_year_entry.insert(0, str(result[4]))
         exam_year_entry.grid(row=2, column=1, sticky="w", padx=20, pady=10)
         
         # Marks Obtained
-        ctk.CTkLabel(form_frame, text="Marks Obtained:", font=ctk.CTkFont(size=12)).grid(
+        ctk.CTkLabel(centered_container, text="Marks Obtained:", font=ctk.CTkFont(size=12)).grid(
             row=3, column=0, sticky="w", padx=20, pady=10
         )
-        marks_obtained_entry = ctk.CTkEntry(form_frame, width=250)
+        marks_obtained_entry = ctk.CTkEntry(centered_container, width=250)
         marks_obtained_entry.insert(0, str(result[5]))
         marks_obtained_entry.grid(row=3, column=1, sticky="w", padx=20, pady=10)
         
         # Grade (Required)
-        ctk.CTkLabel(form_frame, text="Grade (Required):", font=ctk.CTkFont(size=12)).grid(
+        ctk.CTkLabel(centered_container, text="Grade (Required):", font=ctk.CTkFont(size=12)).grid(
             row=4, column=0, sticky="w", padx=20, pady=10
         )
-        grade_entry = ctk.CTkEntry(form_frame, width=250)
+        grade_entry = ctk.CTkEntry(centered_container, width=250)
         grade_entry.insert(0, result[6])
         grade_entry.grid(row=4, column=1, sticky="w", padx=20, pady=10)
         

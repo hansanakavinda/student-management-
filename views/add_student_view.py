@@ -21,22 +21,16 @@ class AddStudentView:
         self.form_frame = ctk.CTkScrollableFrame(parent)
         self.form_frame.pack(fill="both", expand=True, padx=20, pady=20)
         
-        # Add watermark as background using place() so it doesn't interfere with grid layout
-        # self.watermark = WatermarkWidget(
-        #     self.form_frame,
-        #     image_path="logo.png",
-        #     opacity=0.1,
-        #     size=(600, 600)
-        # )
-        # # Place it at the center - it will be behind all grid elements
-        # self.watermark.place(relx=0.5, rely=0.5, anchor="center")
-
-        self._create_form()
+        # Create centered container within the scrollable content
+        centered_container = ctk.CTkFrame(self.form_frame, fg_color="transparent")
+        centered_container.pack(expand=True, pady=20)
+        
+        self._create_form(centered_container)
     
-    def _create_form(self):
+    def _create_form(self, content):
         """Create the registration form UI"""
         title = ctk.CTkLabel(
-            self.form_frame,
+            content,
             text="Student Registration",
             font=ctk.CTkFont(size=24, weight="bold")
         )
@@ -44,7 +38,7 @@ class AddStudentView:
         
         # Image Preview at top
         self.preview_label = ctk.CTkLabel(
-            self.form_frame,
+            content,
             text="👤",
             font=ctk.CTkFont(size=80),
             width=150,
@@ -55,7 +49,7 @@ class AddStudentView:
         self.preview_label.grid(row=1, column=0, columnspan=2, pady=10)
         
         # Image buttons
-        image_btn_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
+        image_btn_frame = ctk.CTkFrame(content, fg_color="transparent")
         image_btn_frame.grid(row=2, column=0, columnspan=2, pady=5)
         
         ctk.CTkButton(
@@ -75,66 +69,66 @@ class AddStudentView:
         ).pack(side="left", padx=5)
         
         # Student Name
-        ctk.CTkLabel(self.form_frame, text="Student Name:", font=ctk.CTkFont(size=14)).grid(
+        ctk.CTkLabel(content, text="Student Name:", font=ctk.CTkFont(size=14)).grid(
             row=3, column=0, sticky="w", padx=20, pady=10
         )
-        self.student_name_entry = ctk.CTkEntry(self.form_frame, width=300)
+        self.student_name_entry = ctk.CTkEntry(content, width=300)
         self.student_name_entry.grid(row=3, column=1, padx=20, pady=10)
         
         # Date of Birth with auto-formatting
-        ctk.CTkLabel(self.form_frame, text="Date of Birth (YYYY-MM-DD):", font=ctk.CTkFont(size=14)).grid(
+        ctk.CTkLabel(content, text="Date of Birth (YYYY-MM-DD):", font=ctk.CTkFont(size=14)).grid(
             row=4, column=0, sticky="w", padx=20, pady=10
         )
-        self.dob_entry = ctk.CTkEntry(self.form_frame, width=300, placeholder_text="20050115")
+        self.dob_entry = ctk.CTkEntry(content, width=300, placeholder_text="20050115")
         self.dob_entry.grid(row=4, column=1, padx=20, pady=10)
         self.dob_entry.bind('<KeyRelease>', self._format_dob)
         
         # Gender
-        ctk.CTkLabel(self.form_frame, text="Gender:", font=ctk.CTkFont(size=14)).grid(
+        ctk.CTkLabel(content, text="Gender:", font=ctk.CTkFont(size=14)).grid(
             row=5, column=0, sticky="w", padx=20, pady=10
         )
         self.gender_var = ctk.StringVar(value="Male")
-        gender_frame = ctk.CTkFrame(self.form_frame, fg_color="transparent")
+        gender_frame = ctk.CTkFrame(content, fg_color="transparent")
         gender_frame.grid(row=5, column=1, sticky="w", padx=20, pady=10)
         ctk.CTkRadioButton(gender_frame, text="Male", variable=self.gender_var, value="Male").pack(side="left", padx=10)
         ctk.CTkRadioButton(gender_frame, text="Female", variable=self.gender_var, value="Female").pack(side="left", padx=10)
         
         # Address
-        ctk.CTkLabel(self.form_frame, text="Address:", font=ctk.CTkFont(size=14)).grid(
+        ctk.CTkLabel(content, text="Address:", font=ctk.CTkFont(size=14)).grid(
             row=6, column=0, sticky="w", padx=20, pady=10
         )
-        self.address_entry = ctk.CTkEntry(self.form_frame, width=300)
+        self.address_entry = ctk.CTkEntry(content, width=300)
         self.address_entry.grid(row=6, column=1, padx=20, pady=10)
         
         # Guardian Name
-        ctk.CTkLabel(self.form_frame, text="Guardian Name:", font=ctk.CTkFont(size=14)).grid(
+        ctk.CTkLabel(content, text="Guardian Name:", font=ctk.CTkFont(size=14)).grid(
             row=7, column=0, sticky="w", padx=20, pady=10
         )
-        self.guardian_name_entry = ctk.CTkEntry(self.form_frame, width=300)
+        self.guardian_name_entry = ctk.CTkEntry(content, width=300)
         self.guardian_name_entry.grid(row=7, column=1, padx=20, pady=10)
         
         # Guardian NIC
-        ctk.CTkLabel(self.form_frame, text="Guardian NIC:", font=ctk.CTkFont(size=14)).grid(
+        ctk.CTkLabel(content, text="Guardian NIC:", font=ctk.CTkFont(size=14)).grid(
             row=8, column=0, sticky="w", padx=20, pady=10
         )
-        self.guardian_nic_entry = ctk.CTkEntry(self.form_frame, width=300, placeholder_text="123456789V")
+        self.guardian_nic_entry = ctk.CTkEntry(content, width=300, placeholder_text="123456789V")
         self.guardian_nic_entry.grid(row=8, column=1, padx=20, pady=10)
         
         # Guardian Contact with digit limit
-        ctk.CTkLabel(self.form_frame, text="Guardian Contact (10 digits):", font=ctk.CTkFont(size=14)).grid(
+        ctk.CTkLabel(content, text="Guardian Contact (10 digits):", font=ctk.CTkFont(size=14)).grid(
             row=9, column=0, sticky="w", padx=20, pady=10
         )
-        self.guardian_contact_entry = ctk.CTkEntry(self.form_frame, width=300, placeholder_text="0771234567")
+        self.guardian_contact_entry = ctk.CTkEntry(content, width=300, placeholder_text="0771234567")
         self.guardian_contact_entry.grid(row=9, column=1, padx=20, pady=10)
         self.guardian_contact_entry.bind('<KeyRelease>', self._limit_contact_digits)
         
         # Error/Success message
-        self.form_message = ctk.CTkLabel(self.form_frame, text="", font=ctk.CTkFont(size=12))
+        self.form_message = ctk.CTkLabel(content, text="", font=ctk.CTkFont(size=12))
         self.form_message.grid(row=10, column=0, columnspan=2, pady=10)
         
         # Submit button
         ctk.CTkButton(
-            self.form_frame,
+            content,
             text="Register Student",
             font=ctk.CTkFont(size=16, weight="bold"),
             width=200,
