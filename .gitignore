@@ -26,8 +26,7 @@ dist/
 app_database.db
 
 # User uploaded content
-student_images/
-student_certificates/
+students/
 
 # IDE / Editor
 .vscode/

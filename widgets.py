@@ -384,7 +384,9 @@ class ConfirmDeleteDialog(ctk.CTkToplevel):
         """Safely set focus if window still exists"""
         if not self.is_destroyed:
             try:
-                self.focus_force()
+                # Check if window still exists before focusing
+                if self.winfo_exists():
+                    self.focus_force()
             except:
                 pass
     

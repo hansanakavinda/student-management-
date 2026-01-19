@@ -6,6 +6,7 @@ from PIL import Image
 import shutil
 import os
 from widgets import EditDialog
+from student_folder_utils import save_student_profile_image, ensure_student_folder_exists
 
 
 class StudentEditWindow:
@@ -191,9 +192,11 @@ class StudentEditWindow:
     def _cancel_image(self):
         """Remove selected image"""
         self.selected_image[0] = None
-        self.preview_label.configure(image="", text="")
+        # Remove the image attribute first
         if hasattr(self.preview_label, 'image'):
             delattr(self.preview_label, 'image')
+        # Configure without image parameter to avoid warning
+        self.preview_label.configure(text="")
     
     def _update_student(self):
         """Update student in database"""
@@ -244,12 +247,18 @@ class StudentEditWindow:
         saved_image_path = self.selected_image[0]
         if self.selected_image[0] and self.selected_image[0] != self.current_image_path:
             try:
-                if not os.path.exists("student_images"):
-                    os.makedirs("student_images")
-                ext = os.path.splitext(self.selected_image[0])[1]
-                new_filename = f"{student_name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d%H%M%S')}{ext}"
-                saved_image_path = os.path.join("student_images", new_filename)
-                shutil.copy2(self.selected_image[0], saved_image_path)
+                # Ensure student folder exists and save profile image
+                saved_image_path = save_student_profile_image(
+                    self.selected_image[0], 
+                    student_name, 
+                    self.student[0]
+                )
+                if not saved_image_path:
+                    self.message_label.configure(
+                        text="Error saving image to student folder",
+                        text_color="red"
+                    )
+                    return
             except Exception as e:
                 self.message_label.configure(
                     text=f"Error saving image: {e}",

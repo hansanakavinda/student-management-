@@ -4,6 +4,7 @@ from tkinter import filedialog, messagebox
 from PIL import Image
 import shutil
 import os
+from student_folder_utils import save_student_certificate, ensure_student_folder_exists
 
 
 class AddCertificateView:
@@ -159,7 +160,7 @@ class AddCertificateView:
         students = self.db.search_students(filter_text) if filter_text else self.db.get_all_students()
         
         if students:
-            self.students_dict = {f"{s[1]} (ID: {s[0]})": s[0] for s in students}
+            self.students_dict = {f"{s[1]} (ID: {s[0]})": s for s in students}
             self.student_combo.configure(values=list(self.students_dict.keys()))
             self.student_combo.set(list(self.students_dict.keys())[0])
         else:
@@ -290,14 +291,14 @@ class AddCertificateView:
             return
         
         try:
-            # Get selected student ID
+            # Get selected student ID and name
             selected_key = self.student_combo.get()
-            student_id = self.students_dict[selected_key]
+            student_record = self.students_dict[selected_key]
+            student_id = student_record[0]
+            student_name = student_record[1]
             
-            # Create certificates directory if it doesn't exist
-            certificates_dir = "student_certificates"
-            if not os.path.exists(certificates_dir):
-                os.makedirs(certificates_dir)
+            # Ensure student folder exists
+            ensure_student_folder_exists(student_name, student_id)
             
             # Save each certificate
             saved_count = 0
@@ -305,18 +306,17 @@ class AddCertificateView:
             
             for cert_path, note in self.certificates:
                 try:
-                    # Copy certificate to the certificates directory
-                    from datetime import datetime
-                    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-                    filename = f"cert_{student_id}_{timestamp}_{saved_count}_{os.path.basename(cert_path)}"
-                    dest_path = os.path.join(certificates_dir, filename)
-                    shutil.copy2(cert_path, dest_path)
+                    # Save certificate to student folder
+                    saved_cert_path = save_student_certificate(cert_path, student_name, student_id, note)
                     
-                    # Save to database
-                    success, message = self.db.add_certificate(student_id, dest_path, note)
-                    
-                    if success:
-                        saved_count += 1
+                    if saved_cert_path:
+                        # Save to database
+                        success, message = self.db.add_certificate(student_id, saved_cert_path, note)
+                        
+                        if success:
+                            saved_count += 1
+                        else:
+                            failed_count += 1
                     else:
                         failed_count += 1
                 except Exception as e:

@@ -6,6 +6,8 @@ from PIL import Image
 import shutil
 import os
 from widgets import WatermarkWidget
+from student_folder_utils import (save_student_profile_image, save_student_certificate,
+                                   ensure_student_folder_exists)
 
 
 class AddStudentView:
@@ -212,14 +214,15 @@ class AddStudentView:
         """Remove selected image and clear preview"""
         self.image_path = None
         try:
+            # Remove the image attribute first
+            if hasattr(self.preview_label, 'image'):
+                delattr(self.preview_label, 'image')
+            # Configure without image parameter to avoid warning
             self.preview_label.configure(
-                image="",
                 text="👤",
                 font=ctk.CTkFont(size=80),
                 fg_color="#2b2b2b"
             )
-            if hasattr(self.preview_label, 'image'):
-                delattr(self.preview_label, 'image')
         except:
             pass
     
@@ -258,7 +261,7 @@ class AddStudentView:
             cert_path, cert_note = cert_data
             
             # Certificate card
-            cert_card = ctk.CTkFrame(self.certificates_display_frame, fg_color="#f0f0f0", corner_radius=8)
+            cert_card = ctk.CTkFrame(self.certificates_display_frame, fg_color="#000000", corner_radius=8)
             cert_card.pack(fill="x", padx=20, pady=5)
             
             # Left side - Preview and name
@@ -397,49 +400,45 @@ class AddStudentView:
             self.form_message.configure(text="Invalid registration date format! Use YYYY-MM-DD", text_color="red")
             return
         
-        # Handle image if provided
-        saved_image_path = None
-        if self.image_path:
-            try:
-                if not os.path.exists("student_images"):
-                    os.makedirs("student_images")
-                
-                ext = os.path.splitext(self.image_path)[1]
-                new_filename = f"{student_name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d%H%M%S')}{ext}"
-                saved_image_path = os.path.join("student_images", new_filename)
-                shutil.copy2(self.image_path, saved_image_path)
-            except Exception as e:
-                self.form_message.configure(text=f"Error saving image: {e}", text_color="red")
-                return
-        
-        # Add to database
+        # Add to database first without image/certificates
         student_data = (student_name, dob, gender, address, guardian_name, guardian_nic, guardian_contact, 
-                       saved_image_path, reg_date, grade)
+                       None, reg_date, grade)
         
-        # Prepare certificates data if any
-        certificates_data = None
-        if self.certificates:
-            try:
-                # Create certificates directory
-                if not os.path.exists("student_certificates"):
-                    os.makedirs("student_certificates")
-                
-                certificates_data = []
-                for cert_path, cert_note in self.certificates:
-                    # Copy certificate file
-                    ext = os.path.splitext(cert_path)[1]
-                    cert_filename = f"{student_name.replace(' ', '_')}_{datetime.now().strftime('%Y%m%d%H%M%S')}_{len(certificates_data)}{ext}"
-                    saved_cert_path = os.path.join("student_certificates", cert_filename)
-                    shutil.copy2(cert_path, saved_cert_path)
-                    certificates_data.append((saved_cert_path, cert_note))
-            except Exception as e:
-                self.form_message.configure(text=f"Error saving certificates: {e}", text_color="red")
-                return
-        
-        success, result = self.db.add_student(student_data, certificates_data)
+        success, result = self.db.add_student(student_data, None)
         
         if success:
-            self.form_message.configure(text=f"Student registered successfully! ID: {result}", text_color="green")
+            student_id = result
+            
+            # Now save image and certificates to student folder
+            saved_image_path = None
+            if self.image_path:
+                try:
+                    # Ensure student folder exists and save profile image
+                    saved_image_path = save_student_profile_image(self.image_path, student_name, student_id)
+                    if saved_image_path:
+                        # Update student record with image path
+                        update_data = (student_name, dob, gender, address, guardian_name, guardian_nic, 
+                                     guardian_contact, saved_image_path, reg_date, grade)
+                        self.db.update_student(student_id, update_data)
+                except Exception as e:
+                    self.form_message.configure(text=f"Student registered but error saving image: {e}", text_color="orange")
+            
+            # Save certificates to student folder
+            if self.certificates:
+                try:
+                    # Ensure student folder exists
+                    ensure_student_folder_exists(student_name, student_id)
+                    
+                    for cert_path, cert_note in self.certificates:
+                        # Save certificate to student folder
+                        saved_cert_path = save_student_certificate(cert_path, student_name, student_id, cert_note)
+                        if saved_cert_path:
+                            # Add certificate record to database
+                            self.db.add_certificate(student_id, saved_cert_path, cert_note)
+                except Exception as e:
+                    self.form_message.configure(text=f"Student registered but error saving certificates: {e}", text_color="orange")
+            
+            self.form_message.configure(text=f"Student registered successfully! ID: {student_id}", text_color="green")
             # Clear form
             self.student_name_entry.delete(0, 'end')
             self.dob_entry.delete(0, 'end')
@@ -453,13 +452,14 @@ class AddStudentView:
             self.image_path = None
             self.certificates = []
             self._update_certificates_display()
+            # Remove the image attribute first
+            if hasattr(self.preview_label, 'image'):
+                delattr(self.preview_label, 'image')
+            # Configure without image parameter to avoid warning
             self.preview_label.configure(
-                image="",
                 text="👤",
                 font=ctk.CTkFont(size=80),
                 fg_color="#2b2b2b"
             )
-            if hasattr(self.preview_label, 'image'):
-                delattr(self.preview_label, 'image')
         else:
             self.form_message.configure(text=f"Error: {result}", text_color="red")
