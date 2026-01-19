@@ -282,6 +282,10 @@ class Database:
         try:
             # Delete exam results first (foreign key constraint)
             self.cursor.execute("DELETE FROM exam_results WHERE student_id = ?", (student_id,))
+            # Delete certificates
+            self.cursor.execute("DELETE FROM certificates WHERE student_id = ?", (student_id,))
+            # Delete student notes
+            self.cursor.execute("DELETE FROM student_notes WHERE student_id = ?", (student_id,))
             # Delete student
             self.cursor.execute("DELETE FROM students WHERE id = ?", (student_id,))
             self.conn.commit()
