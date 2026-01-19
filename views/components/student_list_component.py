@@ -1,6 +1,6 @@
 """Student list/table component - displays all students in a searchable table with pagination"""
 import customtkinter as ctk
-from widgets import SearchWidget
+from widgets import SearchWidget, create_label_with_tooltip
 
 
 class StudentListComponent:
@@ -127,35 +127,44 @@ class StudentListComponent:
         header_frame.pack(fill="x", padx=10, pady=5)
         
         headers = ["ID", "Name", "DOB", "Gender", "Guardian", "Guardian NIC"]
-        for i, header in enumerate(headers):
+        header_widths = [50, 200, 100, 100, 200, 120]
+        
+        for i, (header, width) in enumerate(zip(headers, header_widths)):
             ctk.CTkLabel(
                 header_frame,
                 text=header,
                 font=ctk.CTkFont(size=12, weight="bold"),
-                width=100
-            ).grid(row=0, column=i, padx=5, pady=5)
+                width=width,
+                anchor="w"
+            ).grid(row=0, column=i, padx=5, pady=5, sticky="w")
         
         # Student rows (only current page)
         for student in students:
-            self._create_student_row(scroll_frame, student)
+            self._create_student_row(scroll_frame, student, header_widths)
         
         # Pagination controls (only show if more than one page)
         if self.total_pages > 1:
             self._create_pagination_controls()
     
-    def _create_student_row(self, parent, student):
+    def _create_student_row(self, parent, student, header_widths):
         """Create a single student row with action buttons"""
         student_frame = ctk.CTkFrame(parent)
         student_frame.pack(fill="x", padx=10, pady=2)
         
         values = [student[0], student[1], student[2], student[3], student[5], student[6]]
-        for i, value in enumerate(values):
-            ctk.CTkLabel(
+        # Max lengths for truncation: ID (10), Name (30), DOB (12), Gender (10), Guardian (30), NIC (15)
+        max_lengths = [10, 30, 12, 10, 30, 15]
+        
+        for i, (value, max_len, col_width) in enumerate(zip(values, max_lengths, header_widths)):
+            label = create_label_with_tooltip(
                 student_frame,
-                text=str(value),
+                str(value),
+                max_length=max_len,
                 font=ctk.CTkFont(size=11),
-                width=100
-            ).grid(row=0, column=i, padx=5, pady=5)
+                width=col_width,
+                anchor="w"
+            )
+            label.grid(row=0, column=i, padx=5, pady=5, sticky="w")
         
         # View button
         ctk.CTkButton(

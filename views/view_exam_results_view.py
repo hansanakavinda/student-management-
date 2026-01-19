@@ -1,16 +1,21 @@
 """View Exam Results view for Student Management System"""
 import customtkinter as ctk
 import tkinter.messagebox as messagebox
-from widgets import FilterWidget, EditDialog, ConfirmDeleteDialog
+from widgets import FilterWidget, EditDialog, ConfirmDeleteDialog, create_label_with_tooltip
 
 
 class ViewExamResultsView:
-    """View for displaying exam results with filtering options"""
+    """View for displaying exam results with filtering options and pagination"""
     
-    def __init__(self, parent, db):
+    def __init__(self, parent, db, items_per_page=20):
         self.parent = parent
         self.db = db
         self.filters = {}
+        
+        # Pagination settings
+        self.items_per_page = items_per_page
+        self.current_page = 1
+        self.total_pages = 1
         
         # Create main frame
         self.results_frame = ctk.CTkFrame(parent)
@@ -113,57 +118,101 @@ class ViewExamResultsView:
             command=self._clear_filters
         ).pack(side="left", padx=5)
         
-        # Results display area
-        scroll_frame = ctk.CTkScrollableFrame(self.results_frame, height=450)
-        scroll_frame.pack(fill="both", expand=True, padx=20, pady=20)
-        
-        # Get results with filters
+        # Get all filtered results (for pagination calculation)
         student_name = self.filters.get("student_name")
         exam_name = self.filters.get("exam_name")
         exam_year = self.filters.get("exam_year")
         
-        results = self.db.get_all_exam_results(student_name, exam_name, exam_year)
+        all_results = self.db.get_all_exam_results(student_name, exam_name, exam_year)
         
-        if not results:
+        if not all_results:
             no_results_msg = "No results match your filters." if any(self.filters.values()) else "No exam results found."
-            ctk.CTkLabel(
-                scroll_frame,
+            no_results_label = ctk.CTkLabel(
+                self.results_frame,
                 text=no_results_msg,
                 font=ctk.CTkFont(size=14)
-            ).pack(pady=50)
+            )
+            no_results_label.pack(pady=50)
             return
+        
+        # Calculate pagination
+        total_results = len(all_results)
+        self.total_pages = (total_results + self.items_per_page - 1) // self.items_per_page
+        
+        # Ensure current page is valid
+        if self.current_page > self.total_pages:
+            self.current_page = self.total_pages
+        if self.current_page < 1:
+            self.current_page = 1
+        
+        # Get results for current page
+        start_idx = (self.current_page - 1) * self.items_per_page
+        end_idx = start_idx + self.items_per_page
+        results = all_results[start_idx:end_idx]
+        
+        # Info bar (showing results and pagination info)
+        info_frame = ctk.CTkFrame(self.results_frame, fg_color="transparent")
+        info_frame.pack(fill="x", padx=20, pady=(10, 5))
+        
+        info_text = f"Showing {start_idx + 1}-{min(end_idx, total_results)} of {total_results} results"
+        if self.total_pages > 1:
+            info_text += f" | Page {self.current_page} of {self.total_pages}"
+        
+        ctk.CTkLabel(
+            info_frame,
+            text=info_text,
+            font=ctk.CTkFont(size=12),
+            text_color="gray"
+        ).pack(side="left")
+        
+        # Items per page selector
+        if total_results > 10:
+            ctk.CTkLabel(
+                info_frame,
+                text="Items per page:",
+                font=ctk.CTkFont(size=12)
+            ).pack(side="right", padx=(20, 5))
+            
+            items_options = ["10", "20", "50", "100", "All"]
+            items_dropdown = ctk.CTkOptionMenu(
+                info_frame,
+                values=items_options,
+                width=80,
+                command=self._change_items_per_page
+            )
+            items_dropdown.set(str(self.items_per_page) if self.items_per_page < 1000 else "All")
+            items_dropdown.pack(side="right")
+        
+        # Results display area
+        scroll_frame = ctk.CTkScrollableFrame(self.results_frame, height=350)
+        scroll_frame.pack(fill="both", expand=True, padx=20, pady=(5, 10))
         
         # Header
         header_frame = ctk.CTkFrame(scroll_frame)
         header_frame.pack(fill="x", padx=10, pady=5)
         
-        headers = ["ID", "Student", "Exam", "Year", "Marks", "Grade", "Actions"]
-        widths = [50, 120, 120, 80, 100, 70, 300]
+        headers = ["ID", "Student", "Exam", "Year", "Marks", "Grade"]
+        widths = [50, 200, 120, 80, 100, 70, 150]  # Last width for action buttons
         
         for i, (header, width) in enumerate(zip(headers, widths)):
             ctk.CTkLabel(
                 header_frame,
                 text=header,
                 font=ctk.CTkFont(size=12, weight="bold"),
-                width=width
+                width=width,
+                anchor="w"
             ).grid(row=0, column=i, padx=5, pady=5)
         
-        # Result rows
+        # Result rows (only current page)
         for result in results:
             self._create_result_row(scroll_frame, result, widths)
         
-        # Summary info
-        summary_frame = ctk.CTkFrame(self.results_frame)
-        summary_frame.pack(pady=10)
-        
-        ctk.CTkLabel(
-            summary_frame,
-            text=f"Total Results: {len(results)}",
-            font=ctk.CTkFont(size=13, weight="bold")
-        ).pack(padx=20, pady=10)
+        # Pagination controls (only show if more than one page)
+        if self.total_pages > 1:
+            self._create_pagination_controls()
     
     def _create_result_row(self, parent, result, widths):
-        """Create a single result row"""
+        """Create a single result row with truncated text and tooltips"""
         result_frame = ctk.CTkFrame(parent)
         result_frame.pack(fill="x", padx=10, pady=2)
         
@@ -173,16 +222,22 @@ class ViewExamResultsView:
             result[3],  # Exam name
             result[4],  # Exam year
             result[5],  # Marks obtained
-            result[6]   # Grade
+            result[6].upper()   # Grade
         ]
         
-        for i, (value, width) in enumerate(zip(values, widths[:-1])):
-            ctk.CTkLabel(
+        # Max lengths for truncation: ID (8), Student (30), Exam (15), Year (8), Marks (12), Grade (8)
+        max_lengths = [8, 30, 15, 8, 12, 8]
+        
+        for i, (value, width, max_len) in enumerate(zip(values, widths[:-1], max_lengths)):
+            label = create_label_with_tooltip(
                 result_frame,
-                text=str(value),
+                str(value),
+                max_length=max_len,
                 font=ctk.CTkFont(size=11),
-                width=width
-            ).grid(row=0, column=i, padx=5, pady=5)
+                width=width,
+                anchor="w",
+            )
+            label.grid(row=0, column=i, padx=5, pady=5)
         
         # Action buttons frame
         action_frame = ctk.CTkFrame(result_frame, fg_color="transparent")
@@ -208,8 +263,128 @@ class ViewExamResultsView:
             command=lambda: self._delete_result(result[0])
         ).pack(side="left", padx=2)
     
+    def _create_pagination_controls(self):
+        """Create pagination navigation controls"""
+        pagination_frame = ctk.CTkFrame(self.results_frame)
+        pagination_frame.pack(fill="x", padx=20, pady=10)
+        
+        # Center the controls
+        controls_container = ctk.CTkFrame(pagination_frame, fg_color="transparent")
+        controls_container.pack(expand=True)
+        
+        # First page button
+        first_btn = ctk.CTkButton(
+            controls_container,
+            text="⏮ First",
+            width=80,
+            command=self._go_to_first_page,
+            state="normal" if self.current_page > 1 else "disabled"
+        )
+        first_btn.pack(side="left", padx=2)
+        
+        # Previous page button
+        prev_btn = ctk.CTkButton(
+            controls_container,
+            text="◀ Previous",
+            width=90,
+            command=self._go_to_previous_page,
+            state="normal" if self.current_page > 1 else "disabled"
+        )
+        prev_btn.pack(side="left", padx=2)
+        
+        # Page indicator
+        page_label = ctk.CTkLabel(
+            controls_container,
+            text=f"Page {self.current_page} of {self.total_pages}",
+            font=ctk.CTkFont(size=13, weight="bold"),
+            width=120
+        )
+        page_label.pack(side="left", padx=10)
+        
+        # Next page button
+        next_btn = ctk.CTkButton(
+            controls_container,
+            text="Next ▶",
+            width=90,
+            command=self._go_to_next_page,
+            state="normal" if self.current_page < self.total_pages else "disabled"
+        )
+        next_btn.pack(side="left", padx=2)
+        
+        # Last page button
+        last_btn = ctk.CTkButton(
+            controls_container,
+            text="Last ⏭",
+            width=80,
+            command=self._go_to_last_page,
+            state="normal" if self.current_page < self.total_pages else "disabled"
+        )
+        last_btn.pack(side="left", padx=2)
+        
+        # Quick jump to page
+        if self.total_pages > 5:
+            ctk.CTkLabel(
+                controls_container,
+                text="Go to:",
+                font=ctk.CTkFont(size=12)
+            ).pack(side="left", padx=(15, 5))
+            
+            page_entry = ctk.CTkEntry(controls_container, width=50)
+            page_entry.pack(side="left", padx=2)
+            page_entry.bind("<Return>", lambda e: self._jump_to_page(page_entry.get()))
+            
+            jump_btn = ctk.CTkButton(
+                controls_container,
+                text="Go",
+                width=50,
+                command=lambda: self._jump_to_page(page_entry.get())
+            )
+            jump_btn.pack(side="left", padx=2)
+    
+    def _go_to_first_page(self):
+        """Navigate to first page"""
+        self.current_page = 1
+        self._create_ui()
+    
+    def _go_to_previous_page(self):
+        """Navigate to previous page"""
+        if self.current_page > 1:
+            self.current_page -= 1
+            self._create_ui()
+    
+    def _go_to_next_page(self):
+        """Navigate to next page"""
+        if self.current_page < self.total_pages:
+            self.current_page += 1
+            self._create_ui()
+    
+    def _go_to_last_page(self):
+        """Navigate to last page"""
+        self.current_page = self.total_pages
+        self._create_ui()
+    
+    def _jump_to_page(self, page_str):
+        """Jump to specific page number"""
+        try:
+            page = int(page_str)
+            if 1 <= page <= self.total_pages:
+                self.current_page = page
+                self._create_ui()
+        except ValueError:
+            pass  # Invalid input, ignore
+    
+    def _change_items_per_page(self, value):
+        """Change number of items displayed per page"""
+        if value == "All":
+            self.items_per_page = 999999  # Very large number
+        else:
+            self.items_per_page = int(value)
+        
+        self.current_page = 1  # Reset to first page
+        self._create_ui()
+    
     def _apply_filters_from_controls(self):
-        """Apply filters from the control values"""
+        """Apply filters from the control values and reset to first page"""
         student_name = self.student_name_entry.get().strip() or None
         exam_name = self.exam_name_dropdown.get()
         exam_name = None if exam_name == "All" else exam_name
@@ -221,6 +396,7 @@ class ViewExamResultsView:
             "exam_name": exam_name,
             "exam_year": exam_year
         }
+        self.current_page = 1  # Reset to first page when filters change
         self._create_ui()
     
     def _apply_filters(self, filter_values):
@@ -241,8 +417,9 @@ class ViewExamResultsView:
         self._create_ui()
     
     def _clear_filters(self):
-        """Clear all filters and show all results"""
+        """Clear all filters and show all results, reset to first page"""
         self.filters = {}
+        self.current_page = 1  # Reset to first page when clearing filters
         self._create_ui()
     
     def _edit_result(self, result_id):

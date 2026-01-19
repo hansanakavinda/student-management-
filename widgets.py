@@ -464,3 +464,96 @@ class WatermarkWidget(ctk.CTkLabel):
         """Update the watermark opacity"""
         self.opacity = max(0.0, min(1.0, new_opacity))
         self._load_watermark()
+
+
+class ToolTip:
+    """Tooltip widget that displays text on hover"""
+    
+    def __init__(self, widget, text: str):
+        self.widget = widget
+        self.text = text
+        self.tooltip_window = None
+        
+        # Bind hover events
+        self.widget.bind("<Enter>", self.show_tooltip)
+        self.widget.bind("<Leave>", self.hide_tooltip)
+    
+    def show_tooltip(self, event=None):
+        """Show the tooltip"""
+        if self.tooltip_window or not self.text:
+            return
+        
+        # Get widget position
+        x = self.widget.winfo_rootx() + 20
+        y = self.widget.winfo_rooty() + self.widget.winfo_height() + 5
+        
+        # Create tooltip window
+        self.tooltip_window = tk.Toplevel(self.widget)
+        self.tooltip_window.wm_overrideredirect(True)
+        self.tooltip_window.wm_geometry(f"+{x}+{y}")
+        
+        # Create label with text
+        label = tk.Label(
+            self.tooltip_window,
+            text=self.text,
+            background="#ffffe0",
+            foreground="#000000",
+            relief="solid",
+            borderwidth=1,
+            font=("Arial", 10),
+            padx=5,
+            pady=3
+        )
+        label.pack()
+    
+    def hide_tooltip(self, event=None):
+        """Hide the tooltip"""
+        if self.tooltip_window:
+            self.tooltip_window.destroy()
+            self.tooltip_window = None
+
+
+def truncate_text(text: str, max_length: int = 25) -> str:
+    """
+    Truncate text to a maximum length, adding '...' if truncated
+    
+    Args:
+        text: Text to truncate
+        max_length: Maximum length before truncation
+        
+    Returns:
+        Truncated text with '...' if needed
+    """
+    if not text:
+        return ""
+    
+    text = str(text)
+    if len(text) <= max_length:
+        return text
+    
+    return text[:max_length - 3] + "..."
+
+
+def create_label_with_tooltip(parent, text: str, max_length: int = 25, **label_kwargs):
+    """
+    Create a label with truncated text and tooltip showing full text
+    
+    Args:
+        parent: Parent widget
+        text: Text to display
+        max_length: Maximum length before truncation
+        **label_kwargs: Additional arguments for CTkLabel
+        
+    Returns:
+        CTkLabel widget with tooltip
+    """
+    full_text = str(text) if text else ""
+    display_text = truncate_text(full_text, max_length)
+    
+    label = ctk.CTkLabel(parent, text=display_text, **label_kwargs)
+    
+    # Add tooltip if text was truncated
+    if len(full_text) > max_length:
+        ToolTip(label, full_text)
+    
+    return label
