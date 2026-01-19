@@ -12,11 +12,11 @@ class AddCertificateView:
     def __init__(self, parent, db):
         self.parent = parent
         self.db = db
-        self.certificate_path = None
+        self.certificates = []  # List to store [path, note] pairs
         
         # Create the main frame
         self.main_frame = ctk.CTkFrame(parent)
-        self.main_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        self.main_frame.pack(fill="both", expand=True)
         
         self._create_ui()
     
@@ -95,21 +95,9 @@ class AddCertificateView:
         # Certificate image section
         ctk.CTkLabel(
             form_frame,
-            text="Certificate Image",
+            text="Certificate Images",
             font=ctk.CTkFont(size=16, weight="bold")
         ).pack(pady=(20, 10))
-        
-        # Image preview
-        self.preview_label = ctk.CTkLabel(
-            form_frame,
-            text="No certificate selected",
-            font=ctk.CTkFont(size=12),
-            width=400,
-            height=300,
-            fg_color="#2b2b2b",
-            corner_radius=10
-        )
-        self.preview_label.pack(pady=10)
         
         # Image buttons
         image_btn_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
@@ -117,16 +105,18 @@ class AddCertificateView:
         
         ctk.CTkButton(
             image_btn_frame,
-            text="📁 Choose Certificate Image",
+            text="📁 Add Certificate Images",
             font=ctk.CTkFont(size=14),
             width=200,
             height=40,
+            fg_color="#1E88E5",
+            hover_color="#1976D2",
             command=self._choose_certificate
         ).pack(side="left", padx=10)
         
         ctk.CTkButton(
             image_btn_frame,
-            text="❌ Clear",
+            text="❌ Clear All",
             font=ctk.CTkFont(size=14),
             width=100,
             height=40,
@@ -135,23 +125,9 @@ class AddCertificateView:
             command=self._clear_certificate
         ).pack(side="left", padx=10)
         
-        # Note section
-        note_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
-        note_frame.pack(fill="x", padx=20, pady=15)
-        
-        ctk.CTkLabel(
-            note_frame,
-            text="Note (Optional):",
-            font=ctk.CTkFont(size=14, weight="bold")
-        ).pack(anchor="w", pady=5)
-        
-        self.note_entry = ctk.CTkTextbox(
-            note_frame,
-            height=80,
-            font=ctk.CTkFont(size=13),
-            wrap="word"
-        )
-        self.note_entry.pack(fill="x", pady=5)
+        # Certificates display frame
+        self.certificates_display_frame = ctk.CTkFrame(form_frame, fg_color="transparent")
+        self.certificates_display_frame.pack(fill="both", expand=True, pady=10)
         
         # Status message
         self.message_label = ctk.CTkLabel(
@@ -164,17 +140,18 @@ class AddCertificateView:
         # Submit button
         ctk.CTkButton(
             form_frame,
-            text="💾 Save Certificate",
+            text="💾 Save Certificates",
             font=ctk.CTkFont(size=16, weight="bold"),
             width=200,
             height=45,
-            fg_color="#2b7a0b",
-            hover_color="#3a9b1a",
+            fg_color="#43A047",
+            hover_color="#388E3C",
             command=self._save_certificate
         ).pack(pady=20)
         
-        # Load students
+        # Load students and update display
         self._load_students()
+        self._update_certificates_display()
     
     def _load_students(self):
         """Load students from database with optional filter"""
@@ -196,49 +173,120 @@ class AddCertificateView:
         self._load_students()
     
     def _choose_certificate(self):
-        """Open file dialog to choose certificate image"""
-        file_path = filedialog.askopenfilename(
-            title="Select Certificate Image",
+        """Open file dialog to choose multiple certificate images"""
+        file_paths = filedialog.askopenfilenames(
+            title="Select Certificate Images",
             filetypes=[("Image files", "*.jpg *.jpeg *.png *.gif *.bmp *.pdf")]
         )
         
-        if file_path:
-            self.certificate_path = file_path
+        if file_paths:
+            for file_path in file_paths:
+                # Add certificate with empty note initially
+                self.certificates.append([file_path, ""])
             
-            # Show preview if it's an image
-            if file_path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
-                try:
-                    img = Image.open(file_path)
-                    img.thumbnail((400, 300))
-                    photo = ctk.CTkImage(light_image=img, dark_image=img, size=(400, 300))
-                    self.preview_label.configure(image=photo, text="")
-                    self.preview_label.image = photo
-                except Exception as e:
-                    self.preview_label.configure(text=f"Preview error: {str(e)}")
-            else:
-                # For PDF or other files
-                filename = os.path.basename(file_path)
-                self.preview_label.configure(text=f"Selected: {filename}", image="")
-            
-            self.message_label.configure(text="Certificate image selected", text_color="green")
+            # Refresh the certificates display
+            self._update_certificates_display()
+            self.message_label.configure(text=f"{len(file_paths)} certificate(s) added", text_color="green")
     
     def _clear_certificate(self):
-        """Clear the selected certificate"""
-        self.certificate_path = None
-        self.preview_label.configure(image="", text="No certificate selected")
-        if hasattr(self.preview_label, 'image'):
-            delattr(self.preview_label, 'image')
-        self.message_label.configure(text="")
+        """Clear all selected certificates"""
+        self.certificates = []
+        self._update_certificates_display()
+        
+    
+    def _update_certificates_display(self):
+        """Update the certificates display area"""
+        # Clear existing display
+        for widget in self.certificates_display_frame.winfo_children():
+            widget.destroy()
+        
+        if not self.certificates:
+            ctk.CTkLabel(
+                self.certificates_display_frame,
+                text="No certificates added yet",
+                font=ctk.CTkFont(size=12),
+                text_color="gray"
+            ).pack(pady=20)
+            return
+        
+        # Display each certificate with preview and note field
+        for idx, cert_data in enumerate(self.certificates):
+            cert_path, cert_note = cert_data
+            
+            # Certificate card
+            cert_card = ctk.CTkFrame(self.certificates_display_frame, fg_color="#2b2b2b", corner_radius=8)
+            cert_card.pack(fill="x", padx=20, pady=5)
+            
+            # Left side - Preview and name
+            left_frame = ctk.CTkFrame(cert_card, fg_color="transparent")
+            left_frame.pack(side="left", fill="both", expand=True, padx=10, pady=10)
+            
+            # Show preview thumbnail if image
+            if cert_path.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.bmp')):
+                try:
+                    img = Image.open(cert_path)
+                    img.thumbnail((60, 60))
+                    photo = ctk.CTkImage(light_image=img, dark_image=img, size=(60, 60))
+                    img_label = ctk.CTkLabel(left_frame, image=photo, text="")
+                    img_label.image = photo
+                    img_label.pack(side="left", padx=5)
+                except:
+                    ctk.CTkLabel(left_frame, text="📄", font=ctk.CTkFont(size=30)).pack(side="left", padx=5)
+            else:
+                ctk.CTkLabel(left_frame, text="📄", font=ctk.CTkFont(size=30)).pack(side="left", padx=5)
+            
+            # Certificate name and note
+            info_frame = ctk.CTkFrame(left_frame, fg_color="transparent")
+            info_frame.pack(side="left", fill="both", expand=True, padx=10)
+            
+            ctk.CTkLabel(
+                info_frame,
+                text=os.path.basename(cert_path),
+                font=ctk.CTkFont(size=11, weight="bold"),
+                anchor="w"
+            ).pack(anchor="w")
+            
+            # Note entry
+            note_label = ctk.CTkLabel(info_frame, text="Note:", font=ctk.CTkFont(size=10), anchor="w")
+            note_label.pack(anchor="w", pady=(5, 0))
+            
+            note_entry = ctk.CTkEntry(info_frame, width=300, placeholder_text="Add a note (optional)")
+            note_entry.insert(0, cert_note)
+            note_entry.pack(anchor="w", fill="x")
+            
+            # Update note in list when changed
+            def update_note(idx=idx, entry=note_entry):
+                self.certificates[idx][1] = entry.get()
+            
+            note_entry.bind('<KeyRelease>', lambda e, idx=idx: update_note(idx, note_entry))
+            
+            # Right side - Remove button
+            ctk.CTkButton(
+                cert_card,
+                text="✕",
+                width=40,
+                height=40,
+                fg_color="#E53935",
+                hover_color="#D32F2F",
+                command=lambda idx=idx: self._remove_certificate(idx)
+            ).pack(side="right", padx=10, pady=10)
+    
+    def _remove_certificate(self, idx):
+        """Remove a certificate from the list"""
+        if 0 <= idx < len(self.certificates):
+            self.certificates.pop(idx)
+            self._update_certificates_display()
+            self.message_label.configure(text="Certificate removed", text_color="orange")
     
     def _save_certificate(self):
-        """Save certificate to database"""
+        """Save certificates to database"""
         # Validation
         if not self.students_dict or self.student_combo.get() == "No students found":
             self.message_label.configure(text="❌ Please select a student", text_color="red")
             return
         
-        if not self.certificate_path:
-            self.message_label.configure(text="❌ Please select a certificate image", text_color="red")
+        if not self.certificates:
+            self.message_label.configure(text="❌ Please add at least one certificate", text_color="red")
             return
         
         try:
@@ -246,31 +294,54 @@ class AddCertificateView:
             selected_key = self.student_combo.get()
             student_id = self.students_dict[selected_key]
             
-            # Get note
-            note = self.note_entry.get("1.0", "end-1c").strip()
-            
             # Create certificates directory if it doesn't exist
             certificates_dir = "student_certificates"
             if not os.path.exists(certificates_dir):
                 os.makedirs(certificates_dir)
             
-            # Copy certificate to the certificates directory
-            filename = f"cert_{student_id}_{os.path.basename(self.certificate_path)}"
-            dest_path = os.path.join(certificates_dir, filename)
-            shutil.copy2(self.certificate_path, dest_path)
+            # Save each certificate
+            saved_count = 0
+            failed_count = 0
             
-            # Save to database
-            success, message = self.db.add_certificate(student_id, dest_path, note)
+            for cert_path, note in self.certificates:
+                try:
+                    # Copy certificate to the certificates directory
+                    from datetime import datetime
+                    timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+                    filename = f"cert_{student_id}_{timestamp}_{saved_count}_{os.path.basename(cert_path)}"
+                    dest_path = os.path.join(certificates_dir, filename)
+                    shutil.copy2(cert_path, dest_path)
+                    
+                    # Save to database
+                    success, message = self.db.add_certificate(student_id, dest_path, note)
+                    
+                    if success:
+                        saved_count += 1
+                    else:
+                        failed_count += 1
+                except Exception as e:
+                    failed_count += 1
             
-            if success:
-                self.message_label.configure(text="✓ Certificate saved successfully!", text_color="green")
+            # Show result
+            if saved_count > 0 and failed_count == 0:
+                self.message_label.configure(
+                    text=f"{saved_count} certificate(s) saved successfully!", 
+                    text_color="green"
+                )
                 # Clear form
                 self._clear_certificate()
-                self.note_entry.delete("1.0", "end")
                 # Refresh students
                 self._load_students()
+            elif saved_count > 0 and failed_count > 0:
+                self.message_label.configure(
+                    text=f"⚠ {saved_count} saved, {failed_count} failed", 
+                    text_color="orange"
+                )
             else:
-                self.message_label.configure(text=f"❌ Error: {message}", text_color="red")
+                self.message_label.configure(
+                    text=f"❌ Failed to save certificates", 
+                    text_color="red"
+                )
                 
         except Exception as e:
             self.message_label.configure(text=f"❌ Error: {str(e)}", text_color="red")

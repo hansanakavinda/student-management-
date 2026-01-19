@@ -14,7 +14,7 @@ class ViewExamResultsView:
         
         # Create main frame
         self.results_frame = ctk.CTkFrame(parent)
-        self.results_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        self.results_frame.pack(fill="both", expand=True)
         
         self._create_ui()
     

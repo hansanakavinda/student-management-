@@ -21,7 +21,7 @@ class StudentListComponent:
         
         # Create main frame
         self.list_frame = ctk.CTkFrame(parent)
-        self.list_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        self.list_frame.pack(fill="both", expand=True)
         
         self._create_ui()
     

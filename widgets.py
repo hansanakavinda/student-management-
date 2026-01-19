@@ -220,18 +220,43 @@ class EditDialog(ctk.CTkToplevel):
         
         self.title(title)
         self.geometry(f"{width}x{height}")
-        self.grab_set()
-        self.focus_force()
+        self.is_destroyed = False
         
-        # Center window
+        # Center window first
         self.update_idletasks()
         x = (self.winfo_screenwidth() // 2) - (width // 2)
         y = (self.winfo_screenheight() // 2) - (height // 2)
         self.geometry(f"{width}x{height}+{x}+{y}")
         
+        # Grab and focus after positioning
+        self.grab_set()
+        # Use after() to delay focus to avoid race condition
+        self.after(10, self._set_focus)
+        
         # Content frame (scrollable)
         self.content = ctk.CTkScrollableFrame(self)
         self.content.pack(fill="both", expand=True, padx=20, pady=20)
+    
+    def _set_focus(self):
+        """Safely set focus if window still exists"""
+        if not self.is_destroyed:
+            try:
+                self.focus_force()
+            except:
+                pass
+    
+    def _safe_destroy(self):
+        """Safely destroy the dialog"""
+        if not self.is_destroyed:
+            self.is_destroyed = True
+            try:
+                self.grab_release()
+            except:
+                pass
+            try:
+                self.destroy()
+            except:
+                pass
     
     def add_title(self, text: str):
         """Add a title label to the dialog"""
@@ -270,7 +295,7 @@ class EditDialog(ctk.CTkToplevel):
             height=40,
             fg_color="#666666",
             hover_color="#888888",
-            command=cancel_command or self.destroy
+            command=cancel_command or self._safe_destroy
         ).pack(side="left", padx=10)
 
 
@@ -283,14 +308,18 @@ class ConfirmDeleteDialog(ctk.CTkToplevel):
         
         self.title(title)
         self.geometry("500x380")
-        self.grab_set()
-        self.focus_force()
+        self.is_destroyed = False
         
-        # Center window
+        # Center window first
         self.update_idletasks()
         x = (self.winfo_screenwidth() // 2) - 250
         y = (self.winfo_screenheight() // 2) - 190
         self.geometry(f"500x380+{x}+{y}")
+        
+        # Grab and focus after positioning
+        self.grab_set()
+        # Use after() to delay focus to avoid race condition
+        self.after(10, self._set_focus)
         
         # Content
         content = ctk.CTkFrame(self)
@@ -327,7 +356,7 @@ class ConfirmDeleteDialog(ctk.CTkToplevel):
         
         def confirm_action():
             on_confirm()
-            self.destroy()
+            self._safe_destroy()
         
         ctk.CTkButton(
             button_frame,
@@ -348,8 +377,29 @@ class ConfirmDeleteDialog(ctk.CTkToplevel):
             font=ctk.CTkFont(size=14, weight="bold"),
             fg_color="#666666",
             hover_color="#888888",
-            command=self.destroy
+            command=self._safe_destroy
         ).pack(side="left", padx=15)
+    
+    def _set_focus(self):
+        """Safely set focus if window still exists"""
+        if not self.is_destroyed:
+            try:
+                self.focus_force()
+            except:
+                pass
+    
+    def _safe_destroy(self):
+        """Safely destroy the dialog"""
+        if not self.is_destroyed:
+            self.is_destroyed = True
+            try:
+                self.grab_release()
+            except:
+                pass
+            try:
+                self.destroy()
+            except:
+                pass
 
 
 class WatermarkWidget(ctk.CTkLabel):

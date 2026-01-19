@@ -20,7 +20,7 @@ class AddStudentView:
         
         # Create the form
         self.form_frame = ctk.CTkScrollableFrame(parent)
-        self.form_frame.pack(fill="both", expand=True, padx=20, pady=20)
+        self.form_frame.pack(fill="both", expand=True)
         
         # Create centered container within the scrollable content
         centered_container = ctk.CTkFrame(self.form_frame, fg_color="transparent")
