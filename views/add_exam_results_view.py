@@ -1,6 +1,8 @@
 """Add Exam Results view for Student Management System"""
 import customtkinter as ctk
 from widgets import SearchWidget, FieldWithClearButton
+from validators import Validators
+from formatters import Formatters
 
 
 class AddExamResultsView:
@@ -9,6 +11,7 @@ class AddExamResultsView:
     def __init__(self, parent, db):
         self.parent = parent
         self.db = db
+        self.error_labels = {}  # Store error label widgets
         
         # Create main frame
         self.form_frame = ctk.CTkScrollableFrame(parent)
@@ -79,11 +82,14 @@ class AddExamResultsView:
         self.exam_name_field.grid(row=2, column=1, padx=20, pady=10, sticky="w")
         
         # Exam Year with clear button
-        ctk.CTkLabel(content, text="Exam Year:", font=ctk.CTkFont(size=14)).grid(
+        ctk.CTkLabel(content, text="Exam Year (4 digits):", font=ctk.CTkFont(size=14)).grid(
             row=3, column=0, sticky="w", padx=20, pady=10
         )
         self.exam_year_field = FieldWithClearButton(content, placeholder="2025", width=240)
         self.exam_year_field.grid(row=3, column=1, padx=20, pady=10, sticky="w")
+        Formatters.apply_year_formatting(self.exam_year_field.entry)
+        self.error_labels['exam_year'] = ctk.CTkLabel(content, text="", font=ctk.CTkFont(size=10), text_color="red")
+        self.error_labels['exam_year'].grid(row=3, column=1, sticky="w", padx=20, pady=(60, 0))
         
         # Separator
         separator = ctk.CTkFrame(content, height=2, fg_color="gray")
@@ -99,17 +105,22 @@ class AddExamResultsView:
         self.student_select.grid(row=5, column=1, padx=20, pady=10)
         
         # Marks Obtained
-        ctk.CTkLabel(content, text="Marks Obtained:", font=ctk.CTkFont(size=14)).grid(
+        ctk.CTkLabel(content, text="Marks Obtained (0-100):", font=ctk.CTkFont(size=14)).grid(
             row=6, column=0, sticky="w", padx=20, pady=10
         )
         self.marks_obtained_entry = ctk.CTkEntry(content, width=300, placeholder_text="85")
         self.marks_obtained_entry.grid(row=6, column=1, padx=20, pady=10)
+        Formatters.apply_marks_formatting(self.marks_obtained_entry)
+        # Bind to auto-calculate grade when marks change
+        self.marks_obtained_entry.bind('<KeyRelease>', self._auto_calculate_grade)
+        self.error_labels['marks'] = ctk.CTkLabel(content, text="", font=ctk.CTkFont(size=10), text_color="red")
+        self.error_labels['marks'].grid(row=6, column=1, sticky="w", padx=20, pady=(60, 0))
         
-        # Grade (Required)
-        ctk.CTkLabel(content, text="Grade (Required):", font=ctk.CTkFont(size=14)).grid(
+        # Grade (Auto-calculated)
+        ctk.CTkLabel(content, text="Grade (Auto-calculated):", font=ctk.CTkFont(size=14)).grid(
             row=7, column=0, sticky="w", padx=20, pady=10
         )
-        self.grade_entry = ctk.CTkEntry(content, width=300, placeholder_text="A")
+        self.grade_entry = ctk.CTkEntry(content, width=300, placeholder_text="A", state="readonly")
         self.grade_entry.grid(row=7, column=1, padx=20, pady=10)
         
         # Message label
@@ -149,8 +160,33 @@ class AddExamResultsView:
         if student_options:
             self.student_select.set(student_options[0])
     
+    def _auto_calculate_grade(self, event=None):
+        """Auto-calculate grade based on marks"""
+        marks_text = self.marks_obtained_entry.get().strip()
+        if marks_text:
+            grade = Validators.calculate_grade(marks_text)
+            if grade:
+                # Temporarily enable to update value
+                self.grade_entry.configure(state="normal")
+                self.grade_entry.delete(0, 'end')
+                self.grade_entry.insert(0, grade)
+                self.grade_entry.configure(state="readonly")
+        else:
+            self.grade_entry.configure(state="normal")
+            self.grade_entry.delete(0, 'end')
+            self.grade_entry.configure(state="readonly")
+    
+    def _clear_all_errors(self):
+        """Clear all error messages"""
+        for error_label in self.error_labels.values():
+            error_label.configure(text="")
+    
     def _submit_result(self):
         """Handle exam result submission"""
+        # Clear previous errors
+        self._clear_all_errors()
+        self.result_message.configure(text="")
+        
         # Get student ID from selection
         selected = self.student_select.get()
         if not selected or selected == "No students found":
@@ -166,29 +202,32 @@ class AddExamResultsView:
         grade = self.grade_entry.get().strip()
         
         # Validate all required fields
-        if not all([exam_name, exam_year, marks_obtained, grade]):
-            self.result_message.configure(text="All fields are required!", text_color="red")
-            return
+        has_error = False
+        
+        # Validate exam year
+        result = Validators.validate_exam_year(exam_year)
+        if not result.is_valid:
+            self.error_labels['exam_year'].configure(text=result.error_message)
+            has_error = True
         
         # Validate marks
-        try:
-            marks_obtained = float(marks_obtained)
-            if marks_obtained < 0:
-                self.result_message.configure(text="Marks must be a positive number!", text_color="red")
-                return
-        except ValueError:
-            self.result_message.configure(text="Marks must be a valid number!", text_color="red")
+        result = Validators.validate_marks_obtained(marks_obtained)
+        if not result.is_valid:
+            self.error_labels['marks'].configure(text=result.error_message)
+            has_error = True
+        
+        # Check if grade is present (should be auto-calculated)
+        if not grade:
+            self.result_message.configure(text="Grade cannot be empty. Please enter valid marks.", text_color="red")
+            has_error = True
+        
+        if has_error:
+            self.result_message.configure(text="Please fix the errors above", text_color="red")
             return
         
-        # Validate year
-        try:
-            exam_year = int(exam_year)
-            if exam_year < 1900 or exam_year > 2100:
-                self.result_message.configure(text="Please enter a valid year (1900-2100)!", text_color="red")
-                return
-        except ValueError:
-            self.result_message.configure(text="Exam year must be a valid number!", text_color="red")
-            return
+        # Convert to proper types
+        exam_year = int(exam_year)
+        marks_obtained = float(marks_obtained)
         
         # Add to database
         result_data = (student_id, exam_name, exam_year, marks_obtained, grade)

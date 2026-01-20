@@ -8,6 +8,8 @@ import os
 from widgets import WatermarkWidget
 from student_folder_utils import (save_student_profile_image, save_student_certificate,
                                    ensure_student_folder_exists)
+from validators import Validators
+from formatters import Formatters
 
 
 class AddStudentView:
@@ -19,6 +21,7 @@ class AddStudentView:
         self.image_path = None
         self.certificates = []  # List to store (path, note) tuples
         self.form_message_callback = form_message_callback
+        self.error_labels = {}  # Store error label widgets
         
         # Create the form
         self.form_frame = ctk.CTkScrollableFrame(parent)
@@ -77,6 +80,9 @@ class AddStudentView:
         )
         self.student_name_entry = ctk.CTkEntry(content, width=300)
         self.student_name_entry.grid(row=3, column=1, padx=20, pady=10)
+        Formatters.apply_name_formatting(self.student_name_entry)
+        self.error_labels['student_name'] = ctk.CTkLabel(content, text="", font=ctk.CTkFont(size=10), text_color="red")
+        self.error_labels['student_name'].grid(row=3, column=1, sticky="w", padx=20, pady=(60, 0))
         
         # Date of Birth with auto-formatting
         ctk.CTkLabel(content, text="Date of Birth (YYYY-MM-DD):", font=ctk.CTkFont(size=14)).grid(
@@ -84,7 +90,9 @@ class AddStudentView:
         )
         self.dob_entry = ctk.CTkEntry(content, width=300, placeholder_text="20050115")
         self.dob_entry.grid(row=4, column=1, padx=20, pady=10)
-        self.dob_entry.bind('<KeyRelease>', self._format_dob)
+        Formatters.apply_date_formatting(self.dob_entry)
+        self.error_labels['dob'] = ctk.CTkLabel(content, text="", font=ctk.CTkFont(size=10), text_color="red")
+        self.error_labels['dob'].grid(row=4, column=1, sticky="w", padx=20, pady=(60, 0))
         
         # Grade
         ctk.CTkLabel(content, text="Grade:", font=ctk.CTkFont(size=14)).grid(
@@ -104,6 +112,9 @@ class AddStudentView:
         current_date = datetime.now().strftime("%Y-%m-%d")
         self.reg_date_entry.insert(0, current_date)
         self.reg_date_entry.grid(row=6, column=1, padx=20, pady=10)
+        Formatters.apply_date_formatting(self.reg_date_entry)
+        self.error_labels['reg_date'] = ctk.CTkLabel(content, text="", font=ctk.CTkFont(size=10), text_color="red")
+        self.error_labels['reg_date'].grid(row=6, column=1, sticky="w", padx=20, pady=(60, 0))
         
         # Gender
         ctk.CTkLabel(content, text="Gender:", font=ctk.CTkFont(size=14)).grid(
@@ -121,6 +132,8 @@ class AddStudentView:
         )
         self.address_entry = ctk.CTkEntry(content, width=300)
         self.address_entry.grid(row=8, column=1, padx=20, pady=10)
+        self.error_labels['address'] = ctk.CTkLabel(content, text="", font=ctk.CTkFont(size=10), text_color="red")
+        self.error_labels['address'].grid(row=8, column=1, sticky="w", padx=20, pady=(60, 0))
         
         # Guardian Name
         ctk.CTkLabel(content, text="Guardian Name:", font=ctk.CTkFont(size=14)).grid(
@@ -128,13 +141,19 @@ class AddStudentView:
         )
         self.guardian_name_entry = ctk.CTkEntry(content, width=300)
         self.guardian_name_entry.grid(row=9, column=1, padx=20, pady=10)
+        Formatters.apply_name_formatting(self.guardian_name_entry)
+        self.error_labels['guardian_name'] = ctk.CTkLabel(content, text="", font=ctk.CTkFont(size=10), text_color="red")
+        self.error_labels['guardian_name'].grid(row=9, column=1, sticky="w", padx=20, pady=(60, 0))
         
         # Guardian NIC
-        ctk.CTkLabel(content, text="Guardian NIC:", font=ctk.CTkFont(size=14)).grid(
+        ctk.CTkLabel(content, text="Guardian NIC (12 digits):", font=ctk.CTkFont(size=14)).grid(
             row=10, column=0, sticky="w", padx=20, pady=10
         )
-        self.guardian_nic_entry = ctk.CTkEntry(content, width=300, placeholder_text="123456789V")
+        self.guardian_nic_entry = ctk.CTkEntry(content, width=300, placeholder_text="200212345678")
         self.guardian_nic_entry.grid(row=10, column=1, padx=20, pady=10)
+        Formatters.apply_nic_formatting(self.guardian_nic_entry)
+        self.error_labels['guardian_nic'] = ctk.CTkLabel(content, text="", font=ctk.CTkFont(size=10), text_color="red")
+        self.error_labels['guardian_nic'].grid(row=10, column=1, sticky="w", padx=20, pady=(60, 0))
         
         # Guardian Contact with digit limit
         ctk.CTkLabel(content, text="Guardian Contact (10 digits):", font=ctk.CTkFont(size=14)).grid(
@@ -142,7 +161,9 @@ class AddStudentView:
         )
         self.guardian_contact_entry = ctk.CTkEntry(content, width=300, placeholder_text="0771234567")
         self.guardian_contact_entry.grid(row=11, column=1, padx=20, pady=10)
-        self.guardian_contact_entry.bind('<KeyRelease>', self._limit_contact_digits)
+        Formatters.apply_contact_formatting(self.guardian_contact_entry)
+        self.error_labels['guardian_contact'] = ctk.CTkLabel(content, text="", font=ctk.CTkFont(size=10), text_color="red")
+        self.error_labels['guardian_contact'].grid(row=11, column=1, sticky="w", padx=20, pady=(60, 0))
         
         # Separator for certificates section
         separator = ctk.CTkFrame(content, height=2, fg_color="gray")
@@ -324,51 +345,17 @@ class AddStudentView:
             self.certificates.pop(idx)
             self._update_certificates_display()
     
-    def _format_dob(self, event):
-        """Auto-format date of birth as YYYY-MM-DD"""
-        text = self.dob_entry.get().replace("-", "")
-        text = ''.join(filter(str.isdigit, text))
-        
-        if len(text) > 8:
-            text = text[:8]
-        
-        formatted = text
-        if len(text) > 4:
-            formatted = text[:4] + "-" + text[4:]
-        if len(text) > 6:
-            formatted = text[:4] + "-" + text[4:6] + "-" + text[6:]
-        
-        current_pos = self.dob_entry.index("insert")
-        if self.dob_entry.get() != formatted:
-            self.dob_entry.delete(0, 'end')
-            self.dob_entry.insert(0, formatted)
-            if current_pos > 4 and len(text) > 4:
-                current_pos += 1
-            if current_pos > 7 and len(text) > 6:
-                current_pos += 1
-            try:
-                self.dob_entry.icursor(min(current_pos, len(formatted)))
-            except:
-                pass
-    
-    def _limit_contact_digits(self, event):
-        """Limit guardian contact to 10 digits only"""
-        text = self.guardian_contact_entry.get()
-        text = ''.join(filter(str.isdigit, text))
-        if len(text) > 10:
-            text = text[:10]
-        
-        if self.guardian_contact_entry.get() != text:
-            current_pos = self.guardian_contact_entry.index("insert")
-            self.guardian_contact_entry.delete(0, 'end')
-            self.guardian_contact_entry.insert(0, text)
-            try:
-                self.guardian_contact_entry.icursor(min(current_pos, len(text)))
-            except:
-                pass
+    def _clear_all_errors(self):
+        """Clear all error messages"""
+        for error_label in self.error_labels.values():
+            error_label.configure(text="")
     
     def submit_student(self):
         """Handle student registration form submission"""
+        # Clear previous errors
+        self._clear_all_errors()
+        self.form_message.configure(text="")
+        
         student_name = self.student_name_entry.get().strip()
         dob = self.dob_entry.get().strip()
         grade = self.grade_dropdown.get().strip()
@@ -379,25 +366,59 @@ class AddStudentView:
         guardian_nic = self.guardian_nic_entry.get().strip()
         guardian_contact = self.guardian_contact_entry.get().strip()
         
-        # Validate
-        if not all([student_name, dob, grade, reg_date, address, guardian_name, guardian_nic, guardian_contact]):
-            self.form_message.configure(text="All fields except image and certificates are required!", text_color="red")
-            return
+        # Validate all fields using centralized validators
+        has_error = False
         
-        if len(guardian_contact) != 10 or not guardian_contact.isdigit():
-            self.form_message.configure(text="Guardian contact must be exactly 10 digits!", text_color="red")
-            return
+        # Validate student name
+        result = Validators.validate_student_name(student_name)
+        if not result.is_valid:
+            self.error_labels['student_name'].configure(text=result.error_message)
+            has_error = True
         
-        try:
-            datetime.strptime(dob, "%Y-%m-%d")
-        except ValueError:
-            self.form_message.configure(text="Invalid date of birth format! Use YYYY-MM-DD", text_color="red")
-            return
+        # Validate date of birth
+        result = Validators.validate_date_of_birth(dob)
+        if not result.is_valid:
+            self.error_labels['dob'].configure(text=result.error_message)
+            has_error = True
         
-        try:
-            datetime.strptime(reg_date, "%Y-%m-%d")
-        except ValueError:
-            self.form_message.configure(text="Invalid registration date format! Use YYYY-MM-DD", text_color="red")
+        # Validate registration date
+        result = Validators.validate_registration_date(reg_date)
+        if not result.is_valid:
+            self.error_labels['reg_date'].configure(text=result.error_message)
+            has_error = True
+        
+        # Validate address
+        result = Validators.validate_address(address)
+        if not result.is_valid:
+            self.error_labels['address'].configure(text=result.error_message)
+            has_error = True
+        
+        # Validate guardian name
+        result = Validators.validate_guardian_name(guardian_name)
+        if not result.is_valid:
+            self.error_labels['guardian_name'].configure(text=result.error_message)
+            has_error = True
+        
+        # Validate guardian NIC
+        result = Validators.validate_guardian_nic(guardian_nic)
+        if not result.is_valid:
+            self.error_labels['guardian_nic'].configure(text=result.error_message)
+            has_error = True
+        
+        # Validate guardian contact
+        result = Validators.validate_guardian_contact(guardian_contact)
+        if not result.is_valid:
+            self.error_labels['guardian_contact'].configure(text=result.error_message)
+            has_error = True
+        
+        # Validate grade
+        result = Validators.validate_grade_level(grade)
+        if not result.is_valid:
+            self.form_message.configure(text=result.error_message, text_color="red")
+            has_error = True
+        
+        if has_error:
+            self.form_message.configure(text="Please fix the errors above", text_color="red")
             return
         
         # Add to database first without image/certificates

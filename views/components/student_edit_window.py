@@ -7,6 +7,8 @@ import shutil
 import os
 from widgets import EditDialog
 from student_folder_utils import save_student_profile_image, ensure_student_folder_exists
+from validators import Validators
+from formatters import Formatters
 
 
 class StudentEditWindow:
@@ -17,6 +19,7 @@ class StudentEditWindow:
         self.student = student
         self.db = db
         self.on_success = on_success
+        self.error_labels = {}  # Store error label widgets
         
         self._create_window()
     
@@ -87,28 +90,79 @@ class StudentEditWindow:
         form_frame = ctk.CTkFrame(content, fg_color="transparent")
         form_frame.pack(fill="both", expand=True, pady=10)
         
-        # Create entries
+        # Create entries with formatters and error labels
         self.entries = {}
-        fields_config = [
-            ("Student Name:", self.student[1], 0),
-            ("Date of Birth:", self.student[2], 1),
-            ("Address:", self.student[4], 4),
-            ("Guardian Name:", self.student[5], 5),
-            ("Guardian NIC:", self.student[6], 6),
-            ("Guardian Contact:", self.student[7], 7),
-        ]
         
-        for label, value, row in fields_config:
-            ctk.CTkLabel(
-                form_frame,
-                text=label,
-                font=ctk.CTkFont(size=14)
-            ).grid(row=row, column=0, sticky="w", padx=10, pady=10)
-            
-            entry = ctk.CTkEntry(form_frame, width=300)
-            entry.insert(0, value)
-            entry.grid(row=row, column=1, padx=10, pady=10)
-            self.entries[label] = entry
+        # Student Name
+        ctk.CTkLabel(form_frame, text="Student Name:", font=ctk.CTkFont(size=14)).grid(
+            row=0, column=0, sticky="w", padx=10, pady=10
+        )
+        entry = ctk.CTkEntry(form_frame, width=300)
+        entry.insert(0, self.student[1])
+        entry.grid(row=0, column=1, padx=10, pady=10)
+        Formatters.apply_name_formatting(entry)
+        self.entries["Student Name:"] = entry
+        self.error_labels['student_name'] = ctk.CTkLabel(form_frame, text="", font=ctk.CTkFont(size=10), text_color="red")
+        self.error_labels['student_name'].grid(row=0, column=1, sticky="w", padx=10, pady=(60, 0))
+        
+        # Date of Birth
+        ctk.CTkLabel(form_frame, text="Date of Birth:", font=ctk.CTkFont(size=14)).grid(
+            row=1, column=0, sticky="w", padx=10, pady=10
+        )
+        entry = ctk.CTkEntry(form_frame, width=300)
+        entry.insert(0, self.student[2])
+        entry.grid(row=1, column=1, padx=10, pady=10)
+        Formatters.apply_date_formatting(entry)
+        self.entries["Date of Birth:"] = entry
+        self.error_labels['dob'] = ctk.CTkLabel(form_frame, text="", font=ctk.CTkFont(size=10), text_color="red")
+        self.error_labels['dob'].grid(row=1, column=1, sticky="w", padx=10, pady=(60, 0))
+        
+        # Address
+        ctk.CTkLabel(form_frame, text="Address:", font=ctk.CTkFont(size=14)).grid(
+            row=4, column=0, sticky="w", padx=10, pady=10
+        )
+        entry = ctk.CTkEntry(form_frame, width=300)
+        entry.insert(0, self.student[4])
+        entry.grid(row=4, column=1, padx=10, pady=10)
+        self.entries["Address:"] = entry
+        self.error_labels['address'] = ctk.CTkLabel(form_frame, text="", font=ctk.CTkFont(size=10), text_color="red")
+        self.error_labels['address'].grid(row=4, column=1, sticky="w", padx=10, pady=(60, 0))
+        
+        # Guardian Name
+        ctk.CTkLabel(form_frame, text="Guardian Name:", font=ctk.CTkFont(size=14)).grid(
+            row=5, column=0, sticky="w", padx=10, pady=10
+        )
+        entry = ctk.CTkEntry(form_frame, width=300)
+        entry.insert(0, self.student[5])
+        entry.grid(row=5, column=1, padx=10, pady=10)
+        Formatters.apply_name_formatting(entry)
+        self.entries["Guardian Name:"] = entry
+        self.error_labels['guardian_name'] = ctk.CTkLabel(form_frame, text="", font=ctk.CTkFont(size=10), text_color="red")
+        self.error_labels['guardian_name'].grid(row=5, column=1, sticky="w", padx=10, pady=(60, 0))
+        
+        # Guardian NIC
+        ctk.CTkLabel(form_frame, text="Guardian NIC (12 digits):", font=ctk.CTkFont(size=14)).grid(
+            row=6, column=0, sticky="w", padx=10, pady=10
+        )
+        entry = ctk.CTkEntry(form_frame, width=300)
+        entry.insert(0, self.student[6])
+        entry.grid(row=6, column=1, padx=10, pady=10)
+        Formatters.apply_nic_formatting(entry)
+        self.entries["Guardian NIC:"] = entry
+        self.error_labels['guardian_nic'] = ctk.CTkLabel(form_frame, text="", font=ctk.CTkFont(size=10), text_color="red")
+        self.error_labels['guardian_nic'].grid(row=6, column=1, sticky="w", padx=10, pady=(60, 0))
+        
+        # Guardian Contact
+        ctk.CTkLabel(form_frame, text="Guardian Contact (10 digits):", font=ctk.CTkFont(size=14)).grid(
+            row=7, column=0, sticky="w", padx=10, pady=10
+        )
+        entry = ctk.CTkEntry(form_frame, width=300)
+        entry.insert(0, self.student[7])
+        entry.grid(row=7, column=1, padx=10, pady=10)
+        Formatters.apply_contact_formatting(entry)
+        self.entries["Guardian Contact:"] = entry
+        self.error_labels['guardian_contact'] = ctk.CTkLabel(form_frame, text="", font=ctk.CTkFont(size=10), text_color="red")
+        self.error_labels['guardian_contact'].grid(row=7, column=1, sticky="w", padx=10, pady=(60, 0))
         
         # Grade dropdown (after DOB)
         ctk.CTkLabel(
@@ -134,7 +188,10 @@ class StudentEditWindow:
         reg_date_value = self.student[9] if len(self.student) > 9 and self.student[9] else datetime.now().strftime("%Y-%m-%d")
         reg_date_entry.insert(0, reg_date_value)
         reg_date_entry.grid(row=3, column=1, padx=10, pady=10)
+        Formatters.apply_date_formatting(reg_date_entry)
         self.entries["Registration Date:"] = reg_date_entry
+        self.error_labels['reg_date'] = ctk.CTkLabel(form_frame, text="", font=ctk.CTkFont(size=10), text_color="red")
+        self.error_labels['reg_date'].grid(row=3, column=1, sticky="w", padx=10, pady=(60, 0))
         
         # Gender
         ctk.CTkLabel(
@@ -198,8 +255,17 @@ class StudentEditWindow:
         # Configure without image parameter to avoid warning
         self.preview_label.configure(text="")
     
+    def _clear_all_errors(self):
+        """Clear all error messages"""
+        for error_label in self.error_labels.values():
+            error_label.configure(text="")
+    
     def _update_student(self):
         """Update student in database"""
+        # Clear previous errors
+        self._clear_all_errors()
+        self.message_label.configure(text="")
+        
         student_name = self.entries["Student Name:"].get().strip()
         dob = self.entries["Date of Birth:"].get().strip()
         gender = self.gender_var.get()
@@ -210,37 +276,59 @@ class StudentEditWindow:
         grade = self.grade_dropdown.get().strip()
         reg_date = self.entries["Registration Date:"].get().strip()
         
-        # Validate
-        if not all([student_name, dob, address, guardian_name, guardian_nic, guardian_contact, grade, reg_date]):
-            self.message_label.configure(
-                text="All fields except image are required!",
-                text_color="red"
-            )
-            return
+        # Validate all fields using centralized validators
+        has_error = False
         
-        if len(guardian_contact) != 10 or not guardian_contact.isdigit():
-            self.message_label.configure(
-                text="Guardian contact must be exactly 10 digits!",
-                text_color="red"
-            )
-            return
+        # Validate student name
+        result = Validators.validate_student_name(student_name)
+        if not result.is_valid:
+            self.error_labels['student_name'].configure(text=result.error_message)
+            has_error = True
         
-        try:
-            datetime.strptime(dob, "%Y-%m-%d")
-        except ValueError:
-            self.message_label.configure(
-                text="Invalid date of birth format! Use YYYY-MM-DD",
-                text_color="red"
-            )
-            return
+        # Validate date of birth
+        result = Validators.validate_date_of_birth(dob)
+        if not result.is_valid:
+            self.error_labels['dob'].configure(text=result.error_message)
+            has_error = True
         
-        try:
-            datetime.strptime(reg_date, "%Y-%m-%d")
-        except ValueError:
-            self.message_label.configure(
-                text="Invalid registration date format! Use YYYY-MM-DD",
-                text_color="red"
-            )
+        # Validate registration date
+        result = Validators.validate_registration_date(reg_date)
+        if not result.is_valid:
+            self.error_labels['reg_date'].configure(text=result.error_message)
+            has_error = True
+        
+        # Validate address
+        result = Validators.validate_address(address)
+        if not result.is_valid:
+            self.error_labels['address'].configure(text=result.error_message)
+            has_error = True
+        
+        # Validate guardian name
+        result = Validators.validate_guardian_name(guardian_name)
+        if not result.is_valid:
+            self.error_labels['guardian_name'].configure(text=result.error_message)
+            has_error = True
+        
+        # Validate guardian NIC
+        result = Validators.validate_guardian_nic(guardian_nic)
+        if not result.is_valid:
+            self.error_labels['guardian_nic'].configure(text=result.error_message)
+            has_error = True
+        
+        # Validate guardian contact
+        result = Validators.validate_guardian_contact(guardian_contact)
+        if not result.is_valid:
+            self.error_labels['guardian_contact'].configure(text=result.error_message)
+            has_error = True
+        
+        # Validate grade
+        result = Validators.validate_grade_level(grade)
+        if not result.is_valid:
+            self.message_label.configure(text=result.error_message, text_color="red")
+            has_error = True
+        
+        if has_error:
+            self.message_label.configure(text="Please fix the errors above", text_color="red")
             return
         
         # Handle image
