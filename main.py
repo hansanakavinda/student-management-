@@ -9,10 +9,6 @@ class App(ctk.CTk):
         
         # Configure window
         self.title("Student Management System")
-        self.geometry("1000x600")
-        
-        # Center window on screen
-        self.center_window()
         
         # Set theme
         ctk.set_appearance_mode("dark")
@@ -30,7 +26,10 @@ class App(ctk.CTk):
         self.current_user = None
         # Change to show_login() to start with login page
         # self.show_login()
-        self.show_main_menu() 
+        self.show_main_menu()
+        
+        # Maximize window after content is loaded (respecting taskbar)
+        self.after(10, lambda: self.state('zoomed')) 
         
     def center_window(self):
         """Center the window on screen"""

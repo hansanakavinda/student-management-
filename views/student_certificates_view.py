@@ -1,4 +1,4 @@
-"""Student certificates gallery window"""
+"""Student certificates gallery view"""
 import customtkinter as ctk
 from PIL import Image
 import os
@@ -6,78 +6,65 @@ import tkinter.messagebox as messagebox
 from widgets import ConfirmDeleteDialog
 
 
-class StudentCertificatesWindow:
-    """Window displaying student's certificates in a gallery"""
+class StudentCertificatesView(ctk.CTkFrame):
+    """View displaying student's certificates in a gallery"""
     
-    def __init__(self, parent, student, db):
-        self.parent = parent
+    def __init__(self, parent, student, db, on_back):
+        super().__init__(parent)
         self.student = student
         self.db = db
+        self.on_back = on_back
         
-        self._create_window()
-    
-    def _create_window(self):
-        """Create the certificates window"""
-        self.window = ctk.CTkToplevel(self.parent)
-        self.window.title(f"Certificates - {self.student[1]}")
-        self.window.geometry("900x700")
-        
-        # Make window resizable
-        self.window.resizable(True, True)
-        self.window.minsize(600, 400)
-        
-        self.window.grab_set()
-        self.window.focus_force()
-        
-        # Center window
-        self.window.update_idletasks()
-        x = (self.window.winfo_screenwidth() // 2) - (900 // 2)
-        y = (self.window.winfo_screenheight() // 2) - (700 // 2)
-        self.window.geometry(f"+{x}+{y}")
+        # Configure grid
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
         
         self._create_content()
     
     def _create_content(self):
-        """Create window content"""
+        """Create view content"""
         # Content frame
-        content = ctk.CTkFrame(self.window)
-        content.pack(fill="both", expand=True, padx=20, pady=20)
+        content = ctk.CTkFrame(self)
+        content.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        content.grid_columnconfigure(0, weight=1)
+        content.grid_rowconfigure(2, weight=1)
+        
+        # Back button at the top
+        ctk.CTkButton(
+            content,
+            text="← Back to Student Profiles",
+            width=200,
+            font=ctk.CTkFont(size=14),
+            command=self.on_back
+        ).grid(row=0, column=0, sticky="w", pady=(0, 10))
         
         # Title
         ctk.CTkLabel(
             content,
             text=f"Certificates for {self.student[1]}",
             font=ctk.CTkFont(size=20, weight="bold")
-        ).pack(pady=(10, 10))
+        ).grid(row=1, column=0, pady=10)
         
         # Get certificates for this student
         certificates = self.db.get_certificates_by_student(self.student[0])
         
+        # Scrollable frame for certificates
+        scroll_frame = ctk.CTkScrollableFrame(content)
+        scroll_frame.grid(row=2, column=0, sticky="nsew", pady=10)
+        
         if not certificates:
             ctk.CTkLabel(
-                content,
+                scroll_frame,
                 text="No certificates found for this student.",
                 font=ctk.CTkFont(size=14)
             ).pack(pady=50)
         else:
-            self._create_certificates_gallery(content, certificates)
-        
-        # Close button
-        ctk.CTkButton(
-            content,
-            text="Close",
-            width=150,
-            command=self.window.destroy
-        ).pack(pady=15)
+            self._create_certificates_gallery(scroll_frame, certificates)
     
     def _create_certificates_gallery(self, content, certificates):
         """Create gallery of certificates"""
-        # Scrollable frame for gallery
-        scroll_frame = ctk.CTkScrollableFrame(content)
-        scroll_frame.pack(fill="both", expand=True, padx=10, pady=10)
-        
         # Gallery container with grid layout
-        gallery_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        gallery_frame = ctk.CTkFrame(content, fg_color="transparent")
         gallery_frame.pack(fill="both", expand=True, padx=10, pady=10)
         
         # Display certificates in grid (2 columns)
@@ -209,15 +196,16 @@ class StudentCertificatesWindow:
             """Execute deletion after confirmation"""
             success, message = self.db.delete_certificate(cert_id)
             if success:
-                # Refresh the certificates window
-                self.window.destroy()
-                StudentCertificatesWindow(self.parent, self.student, self.db)
+                # Refresh the certificates view
+                for widget in self.winfo_children():
+                    widget.destroy()
+                self._create_content()
             else:
                 messagebox.showerror("Error", f"Failed to delete certificate: {message}")
         
         # Show confirmation dialog
         ConfirmDeleteDialog(
-            self.parent,
+            self,
             title="Confirm Delete",
             main_message="Are you sure you want to delete\nthis certificate?",
             warning_message="This action cannot be undone!",

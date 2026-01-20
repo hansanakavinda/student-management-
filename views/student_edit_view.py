@@ -1,40 +1,47 @@
-"""Student edit form window"""
+"""Student edit form view"""
 import customtkinter as ctk
 from datetime import datetime
 from tkinter import filedialog
 from PIL import Image
 import shutil
 import os
-from widgets import EditDialog
 from student_folder_utils import save_student_profile_image, ensure_student_folder_exists
 from validators import Validators
 from formatters import Formatters
 
 
-class StudentEditWindow:
-    """Window for editing student information"""
+class StudentEditView(ctk.CTkFrame):
+    """View for editing student information"""
     
-    def __init__(self, parent, student, db, on_success):
-        self.parent = parent
+    def __init__(self, parent, student, db, on_back, on_success):
+        super().__init__(parent)
         self.student = student
         self.db = db
+        self.on_back = on_back
         self.on_success = on_success
         self.error_labels = {}  # Store error label widgets
         
-        self._create_window()
-    
-    def _create_window(self):
-        """Create the edit window"""
-        # Create edit dialog using reusable component
-        self.edit_window = EditDialog(
-            self.parent,
-            title=f"Edit Student - {self.student[1]}",
-            width=700,
-            height=750
-        )
+        # Configure grid
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
         
-        # Get content frame and configure for centering
-        content = self.edit_window.content
+        self._create_content()
+    
+    def _create_content(self):
+        """Create the edit view"""
+        # Scrollable content frame
+        content = ctk.CTkScrollableFrame(self)
+        content.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        content.grid_columnconfigure(0, weight=1)
+        
+        # Back button at the top
+        ctk.CTkButton(
+            content,
+            text="← Back to Student Profiles",
+            width=200,
+            font=ctk.CTkFont(size=14),
+            command=self.on_back
+        ).pack(anchor="w", pady=(0, 20))
         
         # Create centered container within the scrollable content
         centered_container = ctk.CTkFrame(content, fg_color="transparent")
@@ -222,8 +229,18 @@ class StudentEditWindow:
         self.message_label = ctk.CTkLabel(content, text="", font=ctk.CTkFont(size=12))
         self.message_label.pack(pady=10)
         
-        # Add standard button frame
-        self.edit_window.add_button_frame(self._update_student, save_text="Update Student")
+        # Button frame
+        button_frame = ctk.CTkFrame(content, fg_color="transparent")
+        button_frame.pack(pady=20)
+        
+        ctk.CTkButton(
+            button_frame,
+            text="Update Student",
+            font=ctk.CTkFont(size=16, weight="bold"),
+            width=200,
+            height=40,
+            command=self._update_student
+        ).pack(side="left", padx=10)
     
     def _display_image(self, image_path):
         """Display image in preview"""
@@ -367,9 +384,7 @@ class StudentEditWindow:
                 text="Student updated successfully!",
                 text_color="green"
             )
-            self.edit_window.after(1000, self.edit_window.destroy)
-            if self.on_success:
-                self.on_success()
+            self.after(1000, lambda: (self.on_success() if self.on_success else None, self.on_back()))
         else:
             self.message_label.configure(
                 text=f"Error: {message}",

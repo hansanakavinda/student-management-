@@ -1,58 +1,50 @@
-"""Student detail window - shows complete information about a student"""
+"""Student detail view - shows complete information about a student"""
 import customtkinter as ctk
 from PIL import Image
 import os
 
 
-class StudentDetailWindow:
-    """Window displaying complete student information"""
+class StudentDetailView(ctk.CTkFrame):
+    """View displaying complete student information"""
     
-    def __init__(self, parent, student, db, on_edit_notes, on_view_results, on_view_certificates):
-        self.parent = parent
+    def __init__(self, parent, student, db, on_back, on_edit_notes, on_view_results, on_view_certificates):
+        super().__init__(parent)
         self.student = student
         self.db = db
+        self.on_back = on_back
         self.on_edit_notes = on_edit_notes
         self.on_view_results = on_view_results
         self.on_view_certificates = on_view_certificates
         
-        self._create_window()
+        # Configure grid
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        
+        self._create_content()
     
-    def _create_window(self):
-        """Create the detail window"""
-        self.window = ctk.CTkToplevel(self.parent)
-        self.window.title(f"Student Details - {self.student[1]}")
-        self.window.geometry("900x700")
+    def _create_content(self):
+        """Create view content"""
+        # Content - scrollable frame
+        content = ctk.CTkScrollableFrame(self)
+        content.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        content.grid_columnconfigure(0, weight=1)
         
-        # Make window resizable
-        self.window.resizable(True, True)
-        self.window.minsize(500, 600)
-        
-        self.window.grab_set()
-        self.window.focus_force()
-        
-        # Center window
-        self.window.update_idletasks()
-        x = (self.window.winfo_screenwidth() // 2) - 450
-        y = (self.window.winfo_screenheight() // 2) - 350
-        self.window.geometry(f"900x700+{x}+{y}")
-        
-        # Content - scrollable frame with pack
-        content = ctk.CTkScrollableFrame(self.window)
-        content.pack(fill="both", expand=True, padx=20, pady=20)
+        # Back button at the top
+        ctk.CTkButton(
+            content,
+            text="← Back to Student Profiles",
+            width=200,
+            font=ctk.CTkFont(size=14),
+            command=self.on_back
+        ).pack(anchor="w", pady=(0, 20))
         
         # Create centered container within the scrollable content
         centered_container = ctk.CTkFrame(content, fg_color="transparent")
         centered_container.pack(expand=True, pady=20)
         
-        self._create_content(centered_container)
-        
-        self._create_button_frame(content)
-    
-    def _create_content(self, content):
-        """Create window content"""
         # Title
         ctk.CTkLabel(
-            content,
+            centered_container,
             text="Student Profile",
             font=ctk.CTkFont(size=22, weight="bold"),
             width=400
@@ -64,7 +56,7 @@ class StudentDetailWindow:
                 img = Image.open(self.student[8])
                 img.thumbnail((150, 150))
                 photo = ctk.CTkImage(light_image=img, dark_image=img, size=(150, 150))
-                img_label = ctk.CTkLabel(content, image=photo, text="")
+                img_label = ctk.CTkLabel(centered_container, image=photo, text="")
                 img_label.image = photo
                 img_label.pack(pady=10)
             except:
@@ -86,7 +78,7 @@ class StudentDetailWindow:
         ]
         
         for label, value in fields:
-            frame = ctk.CTkFrame(content, fg_color="transparent")
+            frame = ctk.CTkFrame(centered_container, fg_color="transparent")
             frame.pack(fill="x", pady=5)
             
             ctk.CTkLabel(
@@ -104,10 +96,10 @@ class StudentDetailWindow:
             ).pack(side="left", padx=10)
         
         # Notes section
-        self._create_notes_section(content)
+        self._create_notes_section(centered_container)
         
         # Action buttons
-        # self._create_button_frame(content)
+        self._create_button_frame(centered_container)
     
     def _create_notes_section(self, content):
         """Create notes display section"""
@@ -189,7 +181,3 @@ class StudentDetailWindow:
             hover_color="#8e44ad",
             command=lambda: self.on_view_certificates(self.student)
         ).pack(side="left", padx=10)
-    
-    def close(self):
-        """Close the window"""
-        self.window.destroy()

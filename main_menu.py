@@ -11,7 +11,11 @@ from views import (
     StudentProfilesView,
     AddExamResultsView,
     ViewExamResultsView,
-    AddCertificateView
+    AddCertificateView,
+    StudentDetailView,
+    StudentEditView,
+    StudentExamResultsView,
+    StudentCertificatesView
 )
 
 
@@ -27,6 +31,10 @@ class MainMenu(ctk.CTkFrame):
         
         # Database instance
         self.db = Database()
+        
+        # Track current student for detail/edit views
+        self.current_student = None
+        self.previous_section = None
         
         # Create sidebar
         self._create_sidebar()
@@ -112,10 +120,66 @@ class MainMenu(ctk.CTkFrame):
         elif section == "Add Student":
             AddStudentView(self.content_frame, self.db)
         elif section == "Student Profiles":
-            StudentProfilesView(self.content_frame, self.db)
+            StudentProfilesView(self.content_frame, self.db, on_show_view=self._show_student_view)
         elif section == "Add Exam Results":
             AddExamResultsView(self.content_frame, self.db)
         elif section == "View Exam Results":
             ViewExamResultsView(self.content_frame, self.db)
         elif section == "Add Certificates":
             AddCertificateView(self.content_frame, self.db)
+    
+    def _show_student_view(self, view_name, student):
+        """Show a specific student-related view"""
+        # Clear current content
+        for widget in self.content_frame.winfo_children():
+            widget.destroy()
+        
+        self.current_student = student
+        self.previous_section = "Student Profiles"
+        
+        if view_name == "Student Detail":
+            view = StudentDetailView(
+                self.content_frame,
+                student,
+                self.db,
+                on_back=self._back_to_profiles,
+                on_edit_notes=self._edit_notes,
+                on_view_results=lambda s: self._show_student_view("Student Exam Results", s),
+                on_view_certificates=lambda s: self._show_student_view("Student Certificates", s)
+            )
+            view.grid(row=0, column=0, sticky="nsew")
+        elif view_name == "Student Edit":
+            view = StudentEditView(
+                self.content_frame,
+                student,
+                self.db,
+                on_back=self._back_to_profiles,
+                on_success=self._back_to_profiles
+            )
+            view.grid(row=0, column=0, sticky="nsew")
+        elif view_name == "Student Exam Results":
+            view = StudentExamResultsView(
+                self.content_frame,
+                student,
+                self.db,
+                on_back=self._back_to_profiles
+            )
+            view.grid(row=0, column=0, sticky="nsew")
+        elif view_name == "Student Certificates":
+            view = StudentCertificatesView(
+                self.content_frame,
+                student,
+                self.db,
+                on_back=self._back_to_profiles
+            )
+            view.grid(row=0, column=0, sticky="nsew")
+    
+    def _back_to_profiles(self):
+        """Go back to student profiles view"""
+        self.show_content("Student Profiles")
+    
+    def _edit_notes(self, student, detail_view):
+        """Show notes editor window"""
+        from views.components import StudentNotesEditorWindow
+        # Create a toplevel window for notes editing
+        StudentNotesEditorWindow(self.winfo_toplevel(), student, self.db, detail_view)

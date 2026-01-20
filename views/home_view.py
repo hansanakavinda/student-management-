@@ -10,7 +10,7 @@ class HomeView:
     def create(parent, username: str, db):
         """Create and return the home view"""
         # Main container frame
-        main_container = ctk.CTkFrame(parent, fg_color="#FFFBB8")
+        main_container = ctk.CTkFrame(parent, fg_color="#E2DE84")
         main_container.pack(fill="both", expand=True)
         
         # Configure grid for centering

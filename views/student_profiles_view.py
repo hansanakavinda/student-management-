@@ -7,11 +7,7 @@ import os
 from widgets import ConfirmDeleteDialog
 from .components import (
     StudentListComponent,
-    StudentDetailWindow,
-    StudentExamResultsWindow,
-    StudentNotesEditorWindow,
-    StudentCertificatesWindow,
-    StudentEditWindow
+    StudentNotesEditorWindow
 )
 
 
@@ -21,10 +17,11 @@ class StudentProfilesView:
     Separated into focused, single-responsibility components
     """
     
-    def __init__(self, parent, db, on_refresh=None):
+    def __init__(self, parent, db, on_refresh=None, on_show_view=None):
         self.parent = parent
         self.db = db
         self.on_refresh = on_refresh
+        self.on_show_view = on_show_view  # Callback to show different views
         
         # Create the main list component
         self.list_component = StudentListComponent(
@@ -38,23 +35,13 @@ class StudentProfilesView:
     
     def _view_student(self, student):
         """Show detailed view of a student"""
-        StudentDetailWindow(
-            self.parent,
-            student,
-            self.db,
-            on_edit_notes=self._edit_notes,
-            on_view_results=self._view_exam_results,
-            on_view_certificates=self._view_certificates
-        )
+        if self.on_show_view:
+            self.on_show_view("Student Detail", student)
     
     def _edit_student(self, student):
         """Show edit form for student"""
-        StudentEditWindow(
-            self.parent,
-            student,
-            self.db,
-            on_success=self._refresh_list
-        )
+        if self.on_show_view:
+            self.on_show_view("Student Edit", student)
     
     def _delete_student(self, student):
         """Delete student after confirmation"""
@@ -82,16 +69,18 @@ class StudentProfilesView:
         )
     
     def _view_exam_results(self, student):
-        """Show exam results window"""
-        StudentExamResultsWindow(self.parent, student, self.db)
+        """Show exam results view"""
+        if self.on_show_view:
+            self.on_show_view("Student Exam Results", student)
     
-    def _edit_notes(self, student, detail_window):
+    def _edit_notes(self, student, detail_view):
         """Show notes editor"""
-        StudentNotesEditorWindow(detail_window.window, student, self.db, detail_window)
+        StudentNotesEditorWindow(self.parent.master, student, self.db, detail_view)
     
     def _view_certificates(self, student):
-        """Show certificates window"""
-        StudentCertificatesWindow(self.parent, student, self.db)
+        """Show certificates view"""
+        if self.on_show_view:
+            self.on_show_view("Student Certificates", student)
     
     def _refresh_list(self):
         """Refresh the student list"""

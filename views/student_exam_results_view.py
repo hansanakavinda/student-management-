@@ -1,4 +1,4 @@
-"""Student exam results window - displays exam results with filtering"""
+"""Student exam results view - displays exam results with filtering"""
 import customtkinter as ctk
 import os
 import tkinter.messagebox as messagebox
@@ -12,92 +12,96 @@ from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from student_folder_utils import get_student_folder_path, ensure_student_folder_exists
 
 
-class StudentExamResultsWindow:
-    """Window displaying student's exam results with filters"""
+class StudentExamResultsView(ctk.CTkFrame):
+    """View displaying student's exam results with filters"""
     
-    def __init__(self, parent, student, db, filters=None):
-        self.parent = parent
+    def __init__(self, parent, student, db, on_back, filters=None):
+        super().__init__(parent)
         self.student = student
         self.db = db
+        self.on_back = on_back
         self.filters = filters or {}
         
-        self._create_window()
+        # Configure grid
+        self.grid_columnconfigure(0, weight=1)
+        self.grid_rowconfigure(0, weight=1)
+        
+        self._create_content()
     
-    def _create_window(self):
-        """Create the exam results window"""
-        self.window = ctk.CTkToplevel(self.parent)
-        self.window.title(f"Exam Results - {self.student[1]}")
-        self.window.geometry("600x600")
+    def _create_content(self):
+        """Create view content"""
+        # Main scrollable frame
+        main_frame = ctk.CTkScrollableFrame(self)
+        main_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
+        main_frame.grid_columnconfigure(0, weight=1)
         
-        # Make window resizable
-        self.window.resizable(True, True)
-        self.window.minsize(500, 400)
+        # Create centered container
+        centered_container = ctk.CTkFrame(main_frame, fg_color="transparent")
+        centered_container.pack(expand=True, fill="both", pady=20)
         
-        self.window.grab_set()
-        self.window.focus_force()
+        # Back button at the top
+        ctk.CTkButton(
+            centered_container,
+            text="← Back to Student Profiles",
+            width=200,
+            font=ctk.CTkFont(size=14),
+            command=self.on_back
+        ).pack(anchor="w", pady=(0, 20))
         
-        # Center window
-        self.window.update_idletasks()
-        x = (self.window.winfo_screenwidth() // 2) - 300
-        y = (self.window.winfo_screenheight() // 2) - 300
-        self.window.geometry(f"600x600+{x}+{y}")
-        
-        # Content
-        content = ctk.CTkFrame(self.window)
-        content.pack(fill="both", expand=True, padx=20, pady=20)
-
-        # Create centered container within the scrollable content
-        centered_container = ctk.CTkFrame(content, fg_color="transparent")
-        centered_container.pack(expand=True, pady=20)
-        
-        self._create_content(centered_container)
-    
-    def _create_content(self, content):
-        """Create window content"""
+        # Title
+        ctk.CTkLabel(
+            centered_container,
+            text=f"Exam Results - {self.student[1]}",
+            font=ctk.CTkFont(size=22, weight="bold")
+        ).pack(pady=(0, 20))
         
         # Get all results for filtering options
         all_results = self.db.get_student_results(self.student[0])
         
         # Create filter section
-        self._create_filter_section(content, all_results)
+        self._create_filter_section(centered_container, all_results)
         
         # Filter and display results
         filtered_results = self._filter_results(all_results)
         
         if not filtered_results:
             ctk.CTkLabel(
-                content,
+                centered_container,
                 text="No exam results found for this student.",
                 font=ctk.CTkFont(size=14)
             ).pack(pady=50)
         else:
-            self._create_results_table(content, filtered_results)
-        
-        # Close button
-        ctk.CTkButton(
-            content,
-            text="Close",
-            width=150,
-            command=self.window.destroy
-        ).pack(pady=15)
+            # Info text
+            ctk.CTkLabel(
+                centered_container,
+                text=f"Showing {len(filtered_results)} result(s)",
+                font=ctk.CTkFont(size=12),
+                text_color="gray"
+            ).pack(pady=(10, 5))
+            
+            self._create_results_table(centered_container, filtered_results)
     
-    def _create_filter_section(self, content, all_results):
+    def _create_filter_section(self, parent, all_results):
         """Create filter controls"""
-        filter_frame = ctk.CTkFrame(content)
+        filter_frame = ctk.CTkFrame(parent)
         filter_frame.pack(pady=10, fill="x")
+        
+        # Filter controls row
+        controls_frame = ctk.CTkFrame(filter_frame, fg_color="transparent")
+        controls_frame.pack(pady=10)
         
         # Exam Name Dropdown
         ctk.CTkLabel(
-            filter_frame,
+            controls_frame,
             text="Exam Name:",
-            font=ctk.CTkFont(size=12)
+            font=ctk.CTkFont(size=13)
         ).grid(row=0, column=0, padx=5, pady=5, sticky="w")
         
         exam_options = ["All", "First Term", "Second Term", "Third Term"]
         self.exam_name_dropdown = ctk.CTkOptionMenu(
-            filter_frame,
+            controls_frame,
             values=exam_options,
-            width=150
+            width=180
         )
         current_exam = self.filters.get("exam_name") or "All"
         self.exam_name_dropdown.set(current_exam)
@@ -105,15 +109,15 @@ class StudentExamResultsWindow:
         
         # Exam Year Dropdown
         ctk.CTkLabel(
-            filter_frame,
+            controls_frame,
             text="Exam Year:",
-            font=ctk.CTkFont(size=12)
+            font=ctk.CTkFont(size=13)
         ).grid(row=0, column=2, padx=5, pady=5, sticky="w")
         
         # Get unique years from student's results
         unique_years = ["All"] + sorted(list(set([str(r[3]) for r in all_results])), reverse=True)
         self.exam_year_dropdown = ctk.CTkOptionMenu(
-            filter_frame,
+            controls_frame,
             values=unique_years if len(unique_years) > 1 else ["All"],
             width=120
         )
@@ -122,20 +126,20 @@ class StudentExamResultsWindow:
         self.exam_year_dropdown.grid(row=0, column=3, padx=5, pady=5, sticky="w")
         
         # Buttons
-        button_frame = ctk.CTkFrame(filter_frame, fg_color="transparent")
+        button_frame = ctk.CTkFrame(controls_frame, fg_color="transparent")
         button_frame.grid(row=1, column=0, columnspan=4, pady=5)
         
         ctk.CTkButton(
             button_frame,
             text="🔍 Apply Filters",
-            width=120,
+            width=130,
             command=self._apply_filters
         ).pack(side="left", padx=5)
         
         ctk.CTkButton(
             button_frame,
             text="Clear Filters",
-            width=110,
+            width=120,
             fg_color="#666666",
             hover_color="#888888",
             command=self._clear_filters
@@ -148,7 +152,7 @@ class StudentExamResultsWindow:
             command=self._export_to_pdf,
             fg_color="#c12c2a",
             hover_color="#FB3636"
-        ).pack(side="right")
+        ).pack(side="left", padx=5)
     
     def _filter_results(self, all_results):
         """Apply filters to results"""
@@ -164,22 +168,18 @@ class StudentExamResultsWindow:
         
         return results
     
-    def _create_results_table(self, content, results):
+    def _create_results_table(self, parent, results):
         """Create table of exam results"""
-        # Scrollable frame for results
-        scroll_frame = ctk.CTkScrollableFrame(content)
-        scroll_frame.pack(fill="both", expand=True, padx=10, pady=10)
-        
-        # Table container
-        table_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
-        table_frame.pack(fill="x", padx=5, pady=5)
+        # Table container frame
+        table_frame = ctk.CTkFrame(parent)
+        table_frame.pack(fill="x", pady=10)
         
         # Table headers
         header_frame = ctk.CTkFrame(table_frame)
-        header_frame.pack(fill="x", padx=5, pady=5)
+        header_frame.pack(fill="x", padx=10, pady=5)
         
         headers = ["Exam", "Year", "Marks", "Grade"]
-        widths = [150, 100, 100, 80]
+        widths = [200, 120, 120, 100]
         
         for i, (header, width) in enumerate(zip(headers, widths)):
             ctk.CTkLabel(
@@ -187,13 +187,13 @@ class StudentExamResultsWindow:
                 text=header,
                 font=ctk.CTkFont(size=12, weight="bold"),
                 width=width,
-                anchor="center"
-            ).grid(row=0, column=i, padx=3, pady=5, sticky="ew")
+                anchor="w"
+            ).grid(row=0, column=i, padx=5, pady=5)
         
         # Table rows
         for result in results:
             row_frame = ctk.CTkFrame(table_frame, fg_color="#2b2b2b")
-            row_frame.pack(fill="x", padx=5, pady=2)
+            row_frame.pack(fill="x", padx=10, pady=2)
             
             values = [
                 result[2],  # Exam name
@@ -206,10 +206,10 @@ class StudentExamResultsWindow:
                 ctk.CTkLabel(
                     row_frame,
                     text=str(value),
-                    font=ctk.CTkFont(size=11),
+                    font=ctk.CTkFont(size=12),
                     width=width,
-                    anchor="center"
-                ).grid(row=0, column=i, padx=3, pady=8, sticky="ew")
+                    anchor="w"
+                ).grid(row=0, column=i, padx=5, pady=8)
     
     def _apply_filters(self):
         """Apply selected filters and refresh"""
@@ -221,13 +221,19 @@ class StudentExamResultsWindow:
             "exam_year": None if exam_year == "All" else exam_year
         }
         
-        self.window.destroy()
-        StudentExamResultsWindow(self.parent, self.student, self.db, new_filters)
+        # Recreate the view with new filters
+        for widget in self.winfo_children():
+            widget.destroy()
+        self.filters = new_filters
+        self._create_content()
     
     def _clear_filters(self):
         """Clear all filters and refresh"""
-        self.window.destroy()
-        StudentExamResultsWindow(self.parent, self.student, self.db, {})
+        # Recreate the view with no filters
+        for widget in self.winfo_children():
+            widget.destroy()
+        self.filters = {}
+        self._create_content()
     
     def _export_to_pdf(self):
         """Export exam results to PDF respecting current filters"""
@@ -366,7 +372,6 @@ class StudentExamResultsWindow:
         registration_year = int(self.student[9].split("-")[0]) if self.student[9] else current_year
         grade_at_registration = int(self.student[10]) if len(self.student) > 10 and self.student[10].isdigit() else 1
         current_grade = grade_at_registration + (current_year - registration_year)
-
 
         elements.append(Paragraph(f"Grade: {current_grade}", heading_style))
         elements.append(Spacer(1, 0.2*inch))
