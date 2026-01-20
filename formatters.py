@@ -79,16 +79,16 @@ class Formatters:
     @staticmethod
     def format_name(text):
         """
-        Format name - letters and spaces only
+        Format name - letters, spaces, and periods only
         
         Args:
             text: Current text in the field
             
         Returns:
-            Formatted name string (letters and spaces only)
+            Formatted name string (letters, spaces, and periods only)
         """
-        # Keep only letters and spaces
-        formatted = ''.join(char for char in text if char.isalpha() or char.isspace())
+        # Keep only letters, spaces, and periods
+        formatted = ''.join(char for char in text if char.isalpha() or char.isspace() or char == '.')
         
         # Replace multiple spaces with single space
         formatted = re.sub(r'\s+', ' ', formatted)

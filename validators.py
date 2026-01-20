@@ -16,7 +16,7 @@ class Validators:
     @staticmethod
     def validate_student_name(name):
         """
-        Validate student name - only letters and spaces allowed
+        Validate student name - only letters, spaces, and periods allowed
         
         Args:
             name: Student name string
@@ -27,9 +27,9 @@ class Validators:
         if not name or not name.strip():
             return ValidationResult(False, "Student name is required")
         
-        # Check if name contains only letters and spaces
-        if not re.match(r'^[a-zA-Z\s]+$', name.strip()):
-            return ValidationResult(False, "Student name must contain only letters and spaces")
+        # Check if name contains only letters, spaces, and periods
+        if not re.match(r'^[a-zA-Z\s\.]+$', name.strip()):
+            return ValidationResult(False, "Student name must contain only letters, spaces, and periods")
         
         if len(name.strip()) < 2:
             return ValidationResult(False, "Student name must be at least 2 characters")
@@ -103,7 +103,7 @@ class Validators:
     @staticmethod
     def validate_guardian_name(name):
         """
-        Validate guardian name - only letters and spaces allowed
+        Validate guardian name - only letters, spaces, and periods allowed
         
         Args:
             name: Guardian name string
@@ -114,9 +114,9 @@ class Validators:
         if not name or not name.strip():
             return ValidationResult(False, "Guardian name is required")
         
-        # Check if name contains only letters and spaces
-        if not re.match(r'^[a-zA-Z\s]+$', name.strip()):
-            return ValidationResult(False, "Guardian name must contain only letters and spaces")
+        # Check if name contains only letters, spaces, and periods
+        if not re.match(r'^[a-zA-Z\s\.]+$', name.strip()):
+            return ValidationResult(False, "Guardian name must contain only letters, spaces, and periods")
         
         if len(name.strip()) < 2:
             return ValidationResult(False, "Guardian name must be at least 2 characters")
