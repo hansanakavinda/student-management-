@@ -25,7 +25,7 @@ class StudentDetailView(ctk.CTkFrame):
     def _create_content(self):
         """Create view content"""
         # Content - scrollable frame
-        content = ctk.CTkScrollableFrame(self)
+        content = ctk.CTkScrollableFrame(self, fg_color="transparent")
         content.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
         content.grid_columnconfigure(0, weight=1)
         

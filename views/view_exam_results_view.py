@@ -38,18 +38,22 @@ class ViewExamResultsView:
         title.pack(pady=(20, 10))
         
         # Custom filter frame
-        filter_frame = ctk.CTkFrame(self.results_frame)
+        filter_frame = ctk.CTkFrame(self.results_frame, fg_color="transparent")
         filter_frame.pack(pady=10, padx=20, fill="x")
+        
+        # Create centered container for filter elements
+        filter_container = ctk.CTkFrame(filter_frame, fg_color="transparent")
+        filter_container.pack(expand=True, pady=10)
         
         # Row 1: Student Name
         ctk.CTkLabel(
-            filter_frame,
+            filter_container,
             text="Student Name:",
             font=ctk.CTkFont(size=13)
-        ).grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        ).grid(row=0, column=0, padx=5, pady=5, sticky="e")
         
         self.student_name_entry = ctk.CTkEntry(
-            filter_frame,
+            filter_container,
             width=180,
             placeholder_text="Enter student name..."
         )
@@ -61,14 +65,14 @@ class ViewExamResultsView:
         
         # Row 1: Exam Name Dropdown
         ctk.CTkLabel(
-            filter_frame,
+            filter_container,
             text="Exam Name:",
             font=ctk.CTkFont(size=13)
-        ).grid(row=0, column=2, padx=5, pady=5, sticky="w")
+        ).grid(row=0, column=2, padx=5, pady=5, sticky="e")
         
         exam_options = ["All", "First Term", "Second Term", "Third Term"]
         self.exam_name_dropdown = ctk.CTkOptionMenu(
-            filter_frame,
+            filter_container,
             values=exam_options,
             width=180
         )
@@ -79,17 +83,17 @@ class ViewExamResultsView:
         
         # Row 2: Exam Year Dropdown
         ctk.CTkLabel(
-            filter_frame,
+            filter_container,
             text="Exam Year:",
             font=ctk.CTkFont(size=13)
-        ).grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        ).grid(row=1, column=0, padx=5, pady=5, sticky="e")
         
         # Get unique years from database
         all_results = self.db.get_all_exam_results()
         unique_years = ["All"] + sorted(list(set([str(r[4]) for r in all_results])), reverse=True)
         
         self.exam_year_dropdown = ctk.CTkOptionMenu(
-            filter_frame,
+            filter_container,
             values=unique_years if len(unique_years) > 1 else ["All", "2025"],
             width=180
         )
@@ -99,8 +103,8 @@ class ViewExamResultsView:
         self.exam_year_dropdown.grid(row=1, column=1, padx=5, pady=5, sticky="w")
         
         # Buttons
-        button_frame = ctk.CTkFrame(filter_frame, fg_color="transparent")
-        button_frame.grid(row=1, column=2, columnspan=2, pady=5, sticky="e")
+        button_frame = ctk.CTkFrame(filter_container, fg_color="transparent")
+        button_frame.grid(row=1, column=2, columnspan=2, pady=5)
         
         ctk.CTkButton(
             button_frame,
@@ -184,11 +188,11 @@ class ViewExamResultsView:
             items_dropdown.pack(side="right")
         
         # Results display area
-        scroll_frame = ctk.CTkScrollableFrame(self.results_frame, height=350)
+        scroll_frame = ctk.CTkScrollableFrame(self.results_frame, height=350, fg_color="transparent")
         scroll_frame.pack(fill="both", expand=True, padx=20, pady=(5, 10))
         
         # Header
-        header_frame = ctk.CTkFrame(scroll_frame)
+        header_frame = ctk.CTkFrame(scroll_frame, fg_color="transparent")
         header_frame.pack(fill="x", padx=10, pady=5)
         
         headers = ["ID", "Student", "Exam", "Year", "Marks", "Grade"]
@@ -213,7 +217,7 @@ class ViewExamResultsView:
     
     def _create_result_row(self, parent, result, widths):
         """Create a single result row with truncated text and tooltips"""
-        result_frame = ctk.CTkFrame(parent)
+        result_frame = ctk.CTkFrame(parent, fg_color="#363535")
         result_frame.pack(fill="x", padx=10, pady=2)
         
         values = [

@@ -39,7 +39,7 @@ class StudentListComponent:
                 self.current_page = 1
         
         # Title
-        title_text = "Student Profiles - Search Results" if self.current_search_term else "Student Profiles"
+        title_text = "Student Profiles"
         title = ctk.CTkLabel(
             self.list_frame,
             text=title_text,
@@ -120,7 +120,7 @@ class StudentListComponent:
             items_dropdown.pack(side="right")
         
         # Scrollable frame for students (FIXED: removed orientation="horizontal")
-        scroll_frame = ctk.CTkScrollableFrame(self.list_frame, height=400)
+        scroll_frame = ctk.CTkScrollableFrame(self.list_frame, height=400, fg_color="transparent")
         scroll_frame.pack(fill="both", expand=True, padx=20, pady=(0, 10))
         
         # Header
@@ -149,7 +149,7 @@ class StudentListComponent:
     
     def _create_student_row(self, parent, student, header_widths):
         """Create a single student row with action buttons"""
-        student_frame = ctk.CTkFrame(parent)
+        student_frame = ctk.CTkFrame(parent, fg_color="#363535")
         student_frame.pack(fill="x", padx=10, pady=2)
         
         values = [student[0], student[1], student[2], student[3], student[5], student[6]]

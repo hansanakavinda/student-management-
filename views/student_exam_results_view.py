@@ -31,7 +31,7 @@ class StudentExamResultsView(ctk.CTkFrame):
     def _create_content(self):
         """Create view content"""
         # Main scrollable frame
-        main_frame = ctk.CTkScrollableFrame(self)
+        main_frame = ctk.CTkFrame(self, fg_color="transparent")
         main_frame.grid(row=0, column=0, sticky="nsew", padx=20, pady=20)
         main_frame.grid_columnconfigure(0, weight=1)
         
@@ -170,16 +170,20 @@ class StudentExamResultsView(ctk.CTkFrame):
     
     def _create_results_table(self, parent, results):
         """Create table of exam results"""
-        # Table container frame
-        table_frame = ctk.CTkFrame(parent)
-        table_frame.pack(fill="x", pady=10)
+        # Scrollable frame for results (matching student list component structure)
+        scroll_frame = ctk.CTkScrollableFrame(parent, height=400)
+        scroll_frame.pack(fill="both", expand=True, padx=20, pady=(0, 10))
         
+        # Create centered container within the scrollable content
+        centered_container = ctk.CTkFrame(scroll_frame, fg_color="transparent")
+        centered_container.pack(expand=True, pady=20)
+
         # Table headers
-        header_frame = ctk.CTkFrame(table_frame)
+        header_frame = ctk.CTkFrame(centered_container)
         header_frame.pack(fill="x", padx=10, pady=5)
         
         headers = ["Exam", "Year", "Marks", "Grade"]
-        widths = [200, 120, 120, 100]
+        widths = [250, 150, 150, 120]
         
         for i, (header, width) in enumerate(zip(headers, widths)):
             ctk.CTkLabel(
@@ -188,11 +192,11 @@ class StudentExamResultsView(ctk.CTkFrame):
                 font=ctk.CTkFont(size=12, weight="bold"),
                 width=width,
                 anchor="w"
-            ).grid(row=0, column=i, padx=5, pady=5)
+            ).grid(row=0, column=i, padx=5, pady=5, sticky="w")
         
-        # Table rows
+        # Table rows (matching student list component structure)
         for result in results:
-            row_frame = ctk.CTkFrame(table_frame, fg_color="#2b2b2b")
+            row_frame = ctk.CTkFrame(centered_container, fg_color="#363535")
             row_frame.pack(fill="x", padx=10, pady=2)
             
             values = [
@@ -206,10 +210,10 @@ class StudentExamResultsView(ctk.CTkFrame):
                 ctk.CTkLabel(
                     row_frame,
                     text=str(value),
-                    font=ctk.CTkFont(size=12),
+                    font=ctk.CTkFont(size=11),
                     width=width,
                     anchor="w"
-                ).grid(row=0, column=i, padx=5, pady=8)
+                ).grid(row=0, column=i, padx=5, pady=5, sticky="w")
     
     def _apply_filters(self):
         """Apply selected filters and refresh"""
