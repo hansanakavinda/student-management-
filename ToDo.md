@@ -1,3 +1,3 @@
-1. center the content of view exam results view using the approach used in add students view 
+dob and registration date entries
 
-2. modify the student exam results view to use the similar UI approaches for table as 
+icon for taskbar

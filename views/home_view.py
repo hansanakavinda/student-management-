@@ -1,6 +1,7 @@
 import customtkinter as ctk
 from PIL import Image
 import os
+from utils import resource_path
 
 
 class HomeView:
@@ -38,8 +39,9 @@ class HomeView:
         
         # Load and display logo
         try:
-            if os.path.exists("logo.png"):
-                img = Image.open("logo.png")
+            logo_path = resource_path("logo.png")
+            if os.path.exists(logo_path):
+                img = Image.open(logo_path)
                 # Resize logo to reasonable size for center display
                 logo_size = (300, 300)
                 img.thumbnail(logo_size, Image.Resampling.LANCZOS)

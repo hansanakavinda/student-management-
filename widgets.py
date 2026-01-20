@@ -409,6 +409,7 @@ class WatermarkWidget(ctk.CTkLabel):
     
     def __init__(self, parent, image_path: str = "logo.png", opacity: float = 0.3, 
                  size: tuple = None, **kwargs):
+        from utils import resource_path
         """
         Create a watermark widget with logo image
         
@@ -431,13 +432,15 @@ class WatermarkWidget(ctk.CTkLabel):
     
     def _load_watermark(self):
         """Load and process the watermark image"""
+        from utils import resource_path
         try:
-            if not os.path.exists(self.image_path):
+            resolved_path = resource_path(self.image_path)
+            if not os.path.exists(resolved_path):
                 self.configure(text="Logo not found", text_color="gray")
                 return
             
             # Load image with PIL
-            img = Image.open(self.image_path)
+            img = Image.open(resolved_path)
             
             # Resize if size is specified
             if self.size:

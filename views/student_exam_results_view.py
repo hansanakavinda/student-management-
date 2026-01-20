@@ -10,6 +10,7 @@ from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.lib.enums import TA_CENTER, TA_LEFT
 from student_folder_utils import get_student_folder_path, ensure_student_folder_exists
+from utils import resource_path
 
 
 class StudentExamResultsView(ctk.CTkFrame):
@@ -324,7 +325,7 @@ class StudentExamResultsView(ctk.CTkFrame):
         )
         
         # Add logo and school name header side by side
-        logo_path = "logo.png"
+        logo_path = resource_path("logo.png")
         if os.path.exists(logo_path):
             # Create logo image with appropriate size
             logo = Image(logo_path, width=1*inch, height=1*inch)
