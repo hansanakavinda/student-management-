@@ -32,7 +32,8 @@ class StudentProfilesView:
             db,
             on_view_student=self._view_student,
             on_edit_student=self._edit_student,
-            on_delete_student=self._delete_student
+            on_delete_student=self._delete_student,
+            on_view_results=self._view_exam_results
         )
     
     def _view_student(self, student):

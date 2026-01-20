@@ -75,7 +75,7 @@ class StudentDetailWindow:
             ("Student ID:", self.student[0]),
             ("Name:", self.student[1]),
             ("Date of Birth:", self.student[2]),
-            ("Grade:", self.student[10] if len(self.student) > 10 else "N/A"),
+            ("Grade Registered:", self.student[10] if len(self.student) > 10 else "N/A"),
             ("Gender:", self.student[3]),
             ("Address:", self.student[4]),
             ("Guardian Name:", self.student[5]),

@@ -6,12 +6,13 @@ from widgets import SearchWidget, create_label_with_tooltip
 class StudentListComponent:
     """Component for displaying students in a table with search and pagination"""
     
-    def __init__(self, parent, db, on_view_student, on_edit_student, on_delete_student, items_per_page=20):
+    def __init__(self, parent, db, on_view_student, on_edit_student, on_delete_student, on_view_results=None, items_per_page=20):
         self.parent = parent
         self.db = db
         self.on_view_student = on_view_student
         self.on_edit_student = on_edit_student
         self.on_delete_student = on_delete_student
+        self.on_view_results = on_view_results
         
         # Pagination settings
         self.items_per_page = items_per_page
@@ -174,6 +175,19 @@ class StudentListComponent:
             command=lambda: self.on_view_student(student)
         ).grid(row=0, column=len(values), padx=5)
         
+        # View Results button (if callback provided)
+        button_col = len(values) + 1
+        if self.on_view_results:
+            ctk.CTkButton(
+                student_frame,
+                text="Results",
+                width=60,
+                fg_color="#2f9f5a",
+                hover_color="#147056",
+                command=lambda: self.on_view_results(student)
+            ).grid(row=0, column=button_col, padx=5)
+            button_col += 1
+        
         # Edit button
         ctk.CTkButton(
             student_frame,
@@ -182,7 +196,7 @@ class StudentListComponent:
             fg_color="#FF8C00",
             hover_color="#FFA500",
             command=lambda: self.on_edit_student(student)
-        ).grid(row=0, column=len(values)+1, padx=5)
+        ).grid(row=0, column=button_col, padx=5)
         
         # Delete button
         ctk.CTkButton(
@@ -192,7 +206,7 @@ class StudentListComponent:
             fg_color="#DC143C",
             hover_color="#B22222",
             command=lambda: self.on_delete_student(student)
-        ).grid(row=0, column=len(values)+2, padx=5)
+        ).grid(row=0, column=button_col+1, padx=5)
     
     def _create_pagination_controls(self):
         """Create pagination navigation controls"""
