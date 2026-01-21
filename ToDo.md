@@ -1,3 +1,1 @@
-dob and registration date entries
-
-icon for taskbar
+1. ICO icon appear as the exe file but when I run the app that icon does not appear in the task bar or windowed task bar. I want the same logo.ico to be displayed in taskbar when the app is using. 

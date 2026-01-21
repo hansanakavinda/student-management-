@@ -163,18 +163,30 @@ class Formatters:
             current_text = entry_widget.get()
             current_pos = entry_widget.index("insert")
             
+            # Count digits only before cursor to track actual user input position
+            digits_before_cursor = len(''.join(filter(str.isdigit, current_text[:current_pos])))
+            
             formatted = Formatters.format_date(current_text)
             
             if current_text != formatted:
                 entry_widget.delete(0, 'end')
                 entry_widget.insert(0, formatted)
                 
-                # Adjust cursor position for hyphens
-                new_pos = current_pos
-                if current_pos == 5 and len(current_text) > 4:
-                    new_pos = 5  # After first hyphen
-                elif current_pos == 8 and len(current_text) > 6:
-                    new_pos = 8  # After second hyphen
+                # Calculate new cursor position based on digits count
+                # This ensures cursor stays in the right place regardless of hyphens
+                new_pos = 0
+                digit_count = 0
+                for i, char in enumerate(formatted):
+                    if char.isdigit():
+                        digit_count += 1
+                        if digit_count >= digits_before_cursor:
+                            new_pos = i + 1
+                            break
+                    elif digit_count >= digits_before_cursor:
+                        new_pos = i
+                        break
+                else:
+                    new_pos = len(formatted)
                 
                 try:
                     entry_widget.icursor(min(new_pos, len(formatted)))

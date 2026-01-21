@@ -24,7 +24,8 @@ def build_with_pyinstaller():
         "--name=StudentManager",
         "--windowed",  # No console window
         "--onefile",   # Single executable file
-        "--icon=logo.ico",  # App icon
+        "--icon=logo.ico",  # App icon for .exe file in Explorer
+        "--add-data=logo.ico;.",  # Bundle icon inside exe for taskbar
         "--add-data=venv/Lib/site-packages/customtkinter;customtkinter/",
         "--add-data=logo.png;.",  # Include logo.png in root of app
         "--hidden-import=PIL",
@@ -39,7 +40,8 @@ def build_with_pyinstaller():
         "--name=StudentManager",
         "--windowed",  # No console window
         "--onedir",   # Directory with executable and dependencies
-        "--icon=logo.ico",  # App icon
+        "--icon=logo.ico",  # App icon for .exe file in Explorer
+        "--add-data=logo.ico;.",  # Bundle icon inside exe for taskbar
         "--add-data=venv/Lib/site-packages/customtkinter;customtkinter/",
         "--add-data=logo.png;.",  # Include logo.png in root of app
         "--hidden-import=PIL",
